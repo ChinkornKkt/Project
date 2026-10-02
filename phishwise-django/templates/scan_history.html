@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Scan History | PhishWise{% endblock %}
+{% block title %}ประวัติการสแกนลิงก์ | PhishWise{% endblock %}
 
 {% block content %}
 <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-12">
@@ -15,18 +15,22 @@
                     <div class="p-5 hover:bg-slate-50 transition flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                         <div class="flex items-start gap-4 overflow-hidden flex-1">
                             <div class="mt-1 p-2 rounded-full font-bold text-sm w-8 h-8 flex items-center justify-center shrink-0
-                                {% if item.score >= 70 %}bg-emerald-100 text-emerald-700
-                                {% elif item.score >= 50 %}bg-amber-100 text-amber-700
+                                {% if item.status == 'safe' %}bg-emerald-100 text-emerald-700
+                                {% elif item.status == 'mostly_safe' %}bg-teal-100 text-teal-700
+                                {% elif item.status == 'warning' %}bg-amber-100 text-amber-700
+                                {% elif item.status == 'mostly_danger' %}bg-orange-100 text-orange-700
                                 {% else %}bg-rose-100 text-rose-700{% endif %}">
-                                {% if item.score >= 70 %}✓{% elif item.score >= 50 %}!{% else %}✕{% endif %}
+                                {% if item.status == 'safe' or item.status == 'mostly_safe' %}✓{% elif item.status == 'warning' %}!{% else %}✕{% endif %}
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="text-slate-900 font-bold truncate text-base font-mono">{{ item.url }}</p>
                                 <p class="text-xs text-slate-500 mt-1">
                                     {{ item.timestamp|date:'d M Y, H:i' }} · คะแนนความปลอดภัย: 
                                     <span class="font-bold 
-                                        {% if item.score >= 70 %}text-emerald-600
-                                        {% elif item.score >= 50 %}text-amber-500
+                                        {% if item.status == 'safe' %}text-emerald-600
+                                        {% elif item.status == 'mostly_safe' %}text-teal-600
+                                        {% elif item.status == 'warning' %}text-amber-500
+                                        {% elif item.status == 'mostly_danger' %}text-orange-600
                                         {% else %}text-rose-600{% endif %}">
                                         {{ item.score }}/100
                                     </span>
@@ -34,10 +38,12 @@
                             </div>
                         </div>
                         <div class="px-3 py-1 rounded-full text-xs font-bold border shrink-0
-                            {% if item.score >= 70 %}bg-emerald-50 text-emerald-700 border-emerald-200
-                            {% elif item.score >= 50 %}bg-amber-50 text-amber-700 border-amber-200
+                            {% if item.status == 'safe' %}bg-emerald-50 text-emerald-700 border-emerald-200
+                            {% elif item.status == 'mostly_safe' %}bg-teal-50 text-teal-700 border-teal-200
+                            {% elif item.status == 'warning' %}bg-amber-50 text-amber-700 border-amber-200
+                            {% elif item.status == 'mostly_danger' %}bg-orange-50 text-orange-700 border-orange-200
                             {% else %}bg-rose-50 text-rose-700 border-rose-200{% endif %}">
-                            {{ item.status }}
+                            {{ item.status_label }}
                         </div>
                     </div>
                 {% endfor %}

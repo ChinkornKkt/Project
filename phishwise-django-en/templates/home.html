@@ -1,0 +1,574 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home | PhishWise{% endblock %}
+
+{% block extra_head %}
+<!-- Import QR camera library & FontAwesome -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+{% endblock %}
+
+{% block content %}
+<main class="min-h-[calc(100vh-4rem)] py-12 md:py-16 bg-slate-50 text-slate-800 font-sans">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+        
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold mb-6 border border-blue-100 shadow-sm">
+            <span class="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+            AI-Powered Security System
+        </div>
+        
+        <!-- Title & Subtitle -->
+        <h1 class="text-3xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight leading-tight">
+            Inspect <span class="text-blue-600">URLs and QR Codes</span>
+        </h1>
+        <p class="text-base text-slate-500 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Analyze suspicious links and QR codes with AI-driven intelligence. Protect your personal credentials against phishing and malware.
+        </p>
+
+        <!-- Alerts / Messages -->
+        {% if messages %}
+        <div class="mb-6 max-w-2xl mx-auto space-y-2">
+            {% for message in messages %}
+            {% if "No QR Code" not in message.message %}
+            <div class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold border shadow-sm {% if message.tags == 'error' %}bg-rose-50 text-rose-700 border-rose-200{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-blue-50 text-blue-700 border-blue-200{% endif %}">
+                <i class="fa-solid {% if message.tags == 'error' %}fa-triangle-exclamation text-rose-500 text-lg shrink-0{% else %}fa-circle-info text-blue-500 text-lg shrink-0{% endif %}"></i>
+                <span class="flex-1 text-left">{{ message }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Main Form Card -->
+        <div class="bg-white p-5 md:p-8 rounded-3xl shadow-xl border border-slate-200/80 max-w-2xl mx-auto text-left">
+            <form action="{% url 'scan_view' %}" method="POST" enctype="multipart/form-data" id="main-scan-form" class="space-y-5">
+                {% csrf_token %}
+                <input type="hidden" name="source_type" id="sourceType" value="direct_url">
+                
+                <!-- Tab Switcher -->
+                <div class="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/60">
+                    <button type="button" id="tab-url" class="py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-link"></i>
+                        <span>URL Link</span>
+                    </button>
+                    <button type="button" id="tab-qr" class="py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-qrcode"></i>
+                        <span>QR / Image</span>
+                    </button>
+                </div>
+
+                <!-- Form Panels -->
+                <div>
+                    <!-- Panel 1: URL Input -->
+                    <div id="panel-url" class="space-y-4">
+                        <div class="relative flex items-center">
+                            <i class="fa-solid fa-globe absolute left-4 text-slate-400"></i>
+                            <input type="text" id="urlInput" name="url" 
+                                class="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm text-slate-800 placeholder-slate-400 transition-all font-mono" 
+                                placeholder="Enter target URL to inspect (e.g. https://example.com)">
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: QR Scanner -->
+                    <div id="panel-qr" class="hidden space-y-4">
+                        <button type="button" id="startScanBtn" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-camera"></i> 
+                            <span>Open Camera QR Scanner</span>
+                        </button>
+                        
+                        <div id="reader" class="hidden w-full max-w-xs mx-auto overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-900"></div>
+
+                        <div class="relative flex items-center justify-center">
+                            <div class="border-t border-slate-200 w-full"></div>
+                            <span class="bg-white px-3 text-xs font-semibold text-slate-400 uppercase">OR</span>
+                            <div class="border-t border-slate-200 w-full"></div>
+                        </div>
+
+                        <input id="scan-file-upload" type="file" name="file" accept="image/png,image/jpeg,image/webp,image/bmp" class="hidden">
+                        <label for="scan-file-upload" class="flex flex-col items-center justify-center gap-1.5 w-full p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition text-center">
+                            <div class="flex items-center gap-2">
+                                <span class="p-2 rounded-lg bg-blue-50 text-blue-600">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                </span>
+                                <span class="text-sm font-bold text-slate-700 truncate" id="file-name-display">
+                                    Click to upload an image
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 font-medium">
+                                Supports QR codes and image OCR text
+                            </span>
+                        </label>
+                        <div id="qr-file-reader" class="hidden"></div>
+                        <p id="qr-status" class="hidden text-xs rounded-xl px-3 py-2"></p>
+
+                        <!-- Image upload guidelines -->
+                        <div class="p-4 rounded-2xl bg-amber-50/95 border-2 border-amber-300 text-black shadow-xs text-left">
+                            <div class="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-amber-200">
+                                <span class="w-7 h-7 rounded-lg bg-amber-200 text-amber-950 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <i class="fa-solid fa-lightbulb"></i>
+                                </span>
+                                <div class="flex-1 flex flex-wrap items-center justify-between gap-1">
+                                    <span class="font-black text-black text-xs sm:text-sm tracking-tight">Screenshot Best Practices</span>
+                                    <span class="px-2 py-0.5 text-[10px] font-black bg-amber-400 text-black border border-amber-500/50 rounded-md">Important Guidelines</span>
+                                </div>
+                            </div>
+                            
+                            <ul class="space-y-3 text-[12.5px] sm:text-[13px] leading-relaxed text-black font-semibold">
+                                <li class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-crop-simple text-amber-900 mt-1 shrink-0 text-sm"></i>
+                                    <span>
+                                        <strong>1. Crop closely to the URL or QR Code; avoid full desktop screenshots.</strong> Full screen captures contain toolbars and extraneous text that substantially increase OCR processing time.
+                                    </span>
+                                </li>
+                                <li class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-shield-halved text-amber-900 mt-1 shrink-0 text-sm"></i>
+                                    <span>
+                                        <strong>2. Ensure the http:// or https:// scheme is clearly visible.</strong> Modern browser address bars often conceal the protocol. Double-click the address bar before capturing, or screenshot the complete link from chat/SMS.
+                                    </span>
+                                </li>
+                                <li class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-circle-check text-amber-900 mt-1 shrink-0 text-sm"></i>
+                                    <span>
+                                        <strong>3. Keep images crisp and sharp without blur, distortion, or heavy tilt.</strong> This ensures maximum character recognition accuracy for domain names.
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-600/25 transition active:scale-[0.99] flex items-center justify-center gap-2 text-sm cursor-pointer">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Inspect</span>
+                </button>
+
+            </form>
+
+            <!-- Loading Indicator -->
+            <div id="scan-loading" class="hidden pt-4 flex-col items-center justify-center gap-2 text-blue-600 text-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-2xl"></i>
+                <p class="text-xs font-semibold text-slate-600 animate-pulse">Analyzing target link...</p>
+                <p class="text-[11px] text-slate-400">Evaluating observable threat signals. Large images may require additional OCR processing time.</p>
+            </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12 text-left max-w-4xl mx-auto">
+            <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+                <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3 text-base">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h3 class="text-slate-800 font-bold mb-1 text-sm">AI Machine Learning</h3>
+                <p class="text-slate-500 text-xs leading-relaxed">
+
+                    Analyzes URL lexical structure and webpage features using machine learning.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+
+                <div class="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center mb-3 text-base">
+
+                    <i class="fa-solid fa-shield-virus"></i>
+
+                </div>
+
+                <h3 class="text-slate-800 font-bold mb-1 text-sm">VirusTotal API</h3>
+
+                <p class="text-slate-500 text-xs leading-relaxed">
+
+                    Detects downloadable file payloads and threat hashes via 70+ global antivirus engines.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+
+                <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 text-base">
+
+                    <i class="fa-solid fa-gauge-high"></i>
+
+                </div>
+
+                <h3 class="text-slate-800 font-bold mb-1 text-sm">5-Level Assessment</h3>
+
+                <p class="text-slate-500 text-xs leading-relaxed">
+
+                    Delivers intuitive 5-tier risk evaluations with clear, actionable recommendations.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+</main>
+
+<!-- Modal: No QR Code or URL detected -->
+<div id="ocr-not-found-modal" class="hidden fixed inset-0 z-[100000] items-center justify-center p-4" aria-modal="true" role="dialog">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeOcrNotFoundModal()"></div>
+    <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 p-6 sm:p-7 text-center z-10 animate-in fade-in zoom-in duration-200">
+        <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-lg sm:text-xl font-bold text-slate-900 mb-2">No URL or QR Code Detected</h3>
+        <p id="ocr-not-found-message" class="text-sm text-slate-600 mb-6 leading-relaxed">
+            No QR Code or URL text found in the uploaded image.
+        </p>
+        <button type="button" onclick="closeOcrNotFoundModal()" class="w-full py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/25 transition active:scale-[0.98] cursor-pointer text-sm">
+            OK
+        </button>
+    </div>
+</div>
+
+{% if pending_ocr_urls %}
+<!-- Modal: Select URL from OCR -->
+<div id="url-select-modal" class="hidden fixed inset-0 z-[100000] items-end sm:items-center justify-center p-4" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeUrlModal()"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 z-10">
+        <div class="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600">
+                    <i class="fa-solid fa-link text-lg"></i>
+                </div>
+                <div>
+                    <p class="text-base font-bold text-slate-900">Detected {{ pending_ocr_urls|length }} Links in Image</p>
+                    
+                </div>
+            </div>
+            <button onclick="closeUrlModal()" class="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-xl hover:bg-slate-100">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'select_url' %}" id="modal-select-form" class="px-6 py-5">
+            {% csrf_token %}
+            <label for="modal-url-select" class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">
+                <i class="fa-solid fa-list-check mr-1 text-blue-500"></i> Select Target URL to Inspect
+            </label>
+            <select name="selected_url" id="modal-url-select"
+                class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all cursor-pointer"
+                onchange="updateModalPreview(this)">
+                {% for url in pending_ocr_urls %}
+                <option value="{{ url }}" {% if forloop.first %}selected{% endif %}>
+                    {{ url }}
+                </option>
+                {% endfor %}
+            </select>
+            <div id="modal-preview" class="mt-3 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl">
+                <p class="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-1">Selected Target URL:</p>
+                <p id="modal-preview-text" class="text-xs font-mono text-blue-900 break-all leading-relaxed font-semibold">{{ pending_ocr_urls.0 }}</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeUrlModal()" class="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all">
+                    Cancel
+                </button>
+                <button type="submit" id="modal-confirm-btn"
+                    class="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    Confirm Selection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+
+    const tabUrl = document.getElementById('tab-url');
+
+    const tabQr = document.getElementById('tab-qr');
+
+    const panelUrl = document.getElementById('panel-url');
+
+    const panelQr = document.getElementById('panel-qr');
+
+    const scanBtn = document.getElementById('startScanBtn');
+
+    const readerDiv = document.getElementById('reader');
+
+    const urlInput = document.getElementById('urlInput');
+
+    const scanForm = document.getElementById('main-scan-form');
+
+    const scanLoading = document.getElementById('scan-loading');
+    const fileInput = document.getElementById('scan-file-upload');
+    const fileDisplay = document.getElementById('file-name-display');
+    const qrStatus = document.getElementById('qr-status');
+    const sourceType = document.getElementById('sourceType');
+    let cameraScanner = null;
+    let cameraRunning = false;
+
+    const showQrStatus = (message, isError = false) => {
+        qrStatus.textContent = message;
+        qrStatus.classList.remove(
+            'hidden', 'bg-red-50', 'text-red-700', 'bg-green-50', 'text-green-700'
+        );
+        qrStatus.classList.add(
+            isError ? 'bg-red-50' : 'bg-green-50',
+            isError ? 'text-red-700' : 'text-green-700'
+        );
+    };
+
+    const stopCamera = async () => {
+        if (cameraScanner && cameraRunning) {
+            try {
+                await cameraScanner.stop();
+            } catch (_) {}
+        }
+        if (cameraScanner) {
+            try {
+                await cameraScanner.clear();
+            } catch (_) {}
+        }
+        cameraScanner = null;
+        cameraRunning = false;
+        readerDiv.classList.add('hidden');
+        scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>Open Camera QR Scanner</span>';
+    };
+
+    const useDecodedQr = async (decodedText) => {
+        const value = decodedText.trim();
+        if (!/^https?:\/\//i.test(value)) {
+            showQrStatus('This QR Code does not contain an HTTP/HTTPS URL.', true);
+            return;
+        }
+        urlInput.value = value;
+        sourceType.value = 'camera_qr';
+        showQrStatus(`QR Code decoded successfully: ${value}`);
+        await stopCamera();
+        scanLoading.classList.remove('hidden');
+        scanLoading.classList.add('flex');
+        scanForm.requestSubmit();
+    };
+
+
+    // Tab Switcher
+
+    tabUrl.addEventListener('click', () => {
+        sourceType.value = 'direct_url';
+        panelUrl.classList.remove('hidden');
+
+        panelQr.classList.add('hidden');
+
+        
+
+        tabUrl.className = "py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2";
+
+        tabQr.className = "py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+
+
+
+        stopCamera();
+    });
+
+
+
+    tabQr.addEventListener('click', () => {
+
+        panelQr.classList.remove('hidden');
+
+        panelUrl.classList.add('hidden');
+
+        
+
+        tabQr.className = "py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2";
+
+        tabUrl.className = "py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+
+    });
+
+
+
+    // QR Camera Controller
+
+    scanBtn.addEventListener('click', async () => {
+        if (cameraRunning) {
+            await stopCamera();
+            return;
+        }
+        if (typeof Html5Qrcode === 'undefined') {
+            showQrStatus('Unable to initialize QR reader. Check network connection.', true);
+            return;
+        }
+        readerDiv.classList.remove('hidden');
+        scanBtn.innerHTML = '<i class="fa-solid fa-xmark"></i><span>Close Camera</span>';
+        cameraScanner = new Html5Qrcode('reader');
+        try {
+            await cameraScanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                useDecodedQr,
+                () => {}
+            );
+            cameraRunning = true;
+            showQrStatus('Scanning... Position the QR Code within the frame.');
+        } catch (error) {
+            readerDiv.classList.add('hidden');
+            cameraScanner = null;
+            cameraRunning = false;
+            scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>Open Camera QR Scanner</span>';
+            showQrStatus(
+                'Unable to access camera. Please grant camera permissions and ensure HTTPS or localhost is used.',
+                true
+            );
+        }
+    });
+
+    fileInput.addEventListener('change', async () => {
+        if (!fileInput.files.length) return;
+        const file = fileInput.files[0];
+        sourceType.value = 'image_qr';
+        fileDisplay.textContent = `Reading: ${file.name}`;
+        urlInput.value = '';
+        if (file.size > 10 * 1024 * 1024) {
+            showQrStatus('Image file size must not exceed 10 MB.', true);
+            fileInput.value = '';
+            return;
+        }
+        if (typeof Html5Qrcode === 'undefined') {
+            fileDisplay.textContent = `Selected: ${file.name}`;
+            showQrStatus('Image selected. Click "Inspect" to scan for QR Codes or extract URL text via OCR.', false);
+            return;
+        }
+        const fileScanner = new Html5Qrcode('qr-file-reader');
+        try {
+            const decodedText = await fileScanner.scanFile(file, true);
+            fileDisplay.textContent = `QR Code decoded successfully: ${file.name}`;
+            await useDecodedQr(decodedText);
+        } catch (_) {
+            fileDisplay.textContent = `Selected: ${file.name}`;
+            showQrStatus(
+                'Image selected. Click "Inspect" to scan for QR Codes or extract URL text via OCR.',
+                false
+            );
+        } finally {
+            try {
+                await fileScanner.clear();
+            } catch (_) {}
+        }
+    });
+
+    scanForm.addEventListener('submit', (event) => {
+        if (!urlInput.value.trim() && !fileInput.files.length) {
+            event.preventDefault();
+            showQrStatus('Please enter a URL, scan via camera, or upload a QR Code / URL screenshot.', true);
+            return;
+        }
+        scanLoading.classList.remove('hidden');
+        scanLoading.classList.add('flex');
+    });
+
+    // ----------------------------------------------------
+    // Modal Controllers & Notification Triggers
+    // ----------------------------------------------------
+    window.showOcrNotFoundModal = function(message) {
+        const modal = document.getElementById('ocr-not-found-modal');
+        const msgEl = document.getElementById('ocr-not-found-message');
+        if (msgEl && message) {
+            msgEl.textContent = message;
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    window.closeOcrNotFoundModal = function() {
+        const modal = document.getElementById('ocr-not-found-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        // Switch to QR tab so user can retry uploading
+        if (tabQr) {
+            tabQr.click();
+        }
+    };
+
+    {% if pending_ocr_urls %}
+    window.closeUrlModal = function() {
+        const modal = document.getElementById('url-select-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        fetch("{% url 'select_url' %}", {
+            method: "POST",
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'selected_url=__cancel__'
+        }).catch(() => {});
+    };
+
+    window.updateModalPreview = function(select) {
+        const val = select.value;
+        const preview = document.getElementById('modal-preview');
+        const previewText = document.getElementById('modal-preview-text');
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        if (val) {
+            previewText.textContent = val;
+            preview.classList.remove('hidden');
+            confirmBtn.disabled = false;
+        } else {
+            preview.classList.add('hidden');
+            confirmBtn.disabled = true;
+        }
+    };
+
+    const modalSelectForm = document.getElementById('modal-select-form');
+    if (modalSelectForm) {
+        modalSelectForm.addEventListener('submit', function() {
+            const btn = document.getElementById('modal-confirm-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Inspecting...';
+            }
+        });
+    }
+
+    // Auto-open URL select modal when pending_ocr_urls exist
+    const urlModal = document.getElementById('url-select-modal');
+    if (urlModal) {
+        urlModal.classList.remove('hidden');
+        urlModal.classList.add('flex');
+    }
+    tabQr.click();
+    {% endif %}
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeOcrNotFoundModal();
+            {% if pending_ocr_urls %}
+            closeUrlModal();
+            {% endif %}
+        }
+    });
+
+    {% if messages %}
+    // If scan alert message, switch to QR/image tab
+    tabQr.click();
+    {% for message in messages %}
+        {% if "No QR Code" in message.message or "not detected" in message.message and "URL" in message.message %}
+        // Show modal if no QR code or URL found
+        showOcrNotFoundModal("{{ message.message|escapejs }}");
+        {% endif %}
+    {% endfor %}
+    {% endif %}
+</script>
+
+{% endblock %}

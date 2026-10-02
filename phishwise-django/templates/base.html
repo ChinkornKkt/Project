@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -45,10 +45,45 @@
 		};
 	</script>
 	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 	<link rel="stylesheet" href="{% static 'css/app.css' %}">
 	{% block extra_head %}{% endblock %}
 </head>
 <body class="flex min-h-screen flex-col bg-background text-primary font-sans antialiased">
+	<!-- Global Floating Toast Notification Container -->
+	<div id="global-toast-container" class="fixed top-5 right-5 z-[99999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4 sm:px-0" aria-live="polite">
+		{% if messages %}
+			{% for message in messages %}
+			{% if "ไม่พบ QR Code" not in message.message %}
+			<div class="toast-item pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100
+				{% if message.tags == 'success' %}bg-emerald-50/95 border-emerald-200 text-emerald-900
+				{% elif message.tags == 'error' or message.tags == 'danger' %}bg-rose-50/95 border-rose-200 text-rose-900
+				{% elif message.tags == 'warning' %}bg-amber-50/95 border-amber-200 text-amber-900
+				{% else %}bg-blue-50/95 border-blue-200 text-blue-900{% endif %}"
+				role="alert">
+				<div class="shrink-0 text-lg mt-0.5">
+					{% if message.tags == 'success' %}
+						<i class="fa-solid fa-circle-check text-emerald-600"></i>
+					{% elif message.tags == 'error' or message.tags == 'danger' %}
+						<i class="fa-solid fa-circle-exclamation text-rose-600"></i>
+					{% elif message.tags == 'warning' %}
+						<i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+					{% else %}
+						<i class="fa-solid fa-circle-info text-blue-600"></i>
+					{% endif %}
+				</div>
+				<div class="flex-1 text-xs font-semibold leading-relaxed">
+					{{ message }}
+				</div>
+				<button type="button" onclick="dismissToast(this.closest('.toast-item'))" class="shrink-0 text-slate-400 hover:text-slate-700 transition p-1 text-sm leading-none" title="ปิด">
+					<i class="fa-solid fa-xmark"></i>
+				</button>
+			</div>
+			{% endif %}
+			{% endfor %}
+		{% endif %}
+	</div>
+
 	{% if not hide_navbar %}
 		{% include 'partials/navbar.html' %}
 	{% endif %}
@@ -67,6 +102,54 @@
 		</footer>
 	</div>
 	<script src="{% static 'js/app.js' %}"></script>
+	<script>
+		function dismissToast(el) {
+			if (!el) return;
+			el.classList.add('opacity-0', '-translate-y-2');
+			setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+		}
+
+		window.showToast = function(message, type = 'success', duration = 3500) {
+			const container = document.getElementById('global-toast-container');
+			if (!container) return;
+
+			const config = {
+				success: { bg: 'bg-emerald-50/95 border-emerald-200 text-emerald-900', icon: 'fa-circle-check text-emerald-600' },
+				error: { bg: 'bg-rose-50/95 border-rose-200 text-rose-900', icon: 'fa-circle-exclamation text-rose-600' },
+				danger: { bg: 'bg-rose-50/95 border-rose-200 text-rose-900', icon: 'fa-circle-exclamation text-rose-600' },
+				warning: { bg: 'bg-amber-50/95 border-amber-200 text-amber-900', icon: 'fa-triangle-exclamation text-amber-600' },
+				info: { bg: 'bg-blue-50/95 border-blue-200 text-blue-900', icon: 'fa-circle-info text-blue-600' }
+			};
+			const style = config[type] || config.info;
+
+			const toast = document.createElement('div');
+			toast.className = `toast-item pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100 ${style.bg}`;
+			toast.setAttribute('role', 'alert');
+			toast.innerHTML = `
+				<div class="shrink-0 text-lg mt-0.5">
+					<i class="fa-solid ${style.icon}"></i>
+				</div>
+				<div class="flex-1 text-xs font-semibold leading-relaxed">
+					${message}
+				</div>
+				<button type="button" onclick="dismissToast(this.closest('.toast-item'))" class="shrink-0 text-slate-400 hover:text-slate-700 transition p-1 text-sm leading-none" title="ปิด">
+					<i class="fa-solid fa-xmark"></i>
+				</button>
+			`;
+
+			container.appendChild(toast);
+			if (duration > 0) {
+				setTimeout(() => dismissToast(toast), duration);
+			}
+		};
+
+		// Auto-dismiss server-rendered messages
+		document.addEventListener('DOMContentLoaded', () => {
+			document.querySelectorAll('#global-toast-container .toast-item').forEach(el => {
+				setTimeout(() => dismissToast(el), 4000);
+			});
+		});
+	</script>
 	{% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,90 +1,349 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard | PhishWise{% endblock %}
+{% block title %}สถิติการตรวจสอบ | PhishWise{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    .dashboard-bg {
+        background:
+            radial-gradient(circle at 8% 4%, rgba(59, 130, 246, .10), transparent 25rem),
+            radial-gradient(circle at 94% 28%, rgba(124, 58, 237, .07), transparent 24rem),
+            #f8fafc;
+    }
+    .dashboard-hero {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(239,246,255,.92));
+    }
+    .dashboard-hero::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        width: 18rem;
+        height: 18rem;
+        right: -7rem;
+        top: -10rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(37,99,235,.20), rgba(124,58,237,.14));
+        filter: blur(2px);
+    }
+    .stat-card { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 16px 35px rgba(15, 23, 42, .09); }
+    .stat-card::after {
+        content: "";
+        position: absolute;
+        width: 6rem;
+        height: 6rem;
+        right: -3rem;
+        bottom: -3rem;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: .035;
+    }
+    .panel-card { transition: border-color .2s ease, box-shadow .2s ease; }
+    .panel-card:hover { border-color: #bfdbfe; box-shadow: 0 14px 34px rgba(15, 23, 42, .06); }
+    .stats-table th, .stats-table td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: .85rem 1rem;
+        text-align: left;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-14">
-    <div class="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-6 mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-slate-900">หน้าจอแสดงผลสถิติของฉัน</h1>
-            <p class="text-slate-500 mt-2 text-lg">ยินดีต้อนรับ, <span class="text-blue-600 font-bold">{{ current_user.name|default:'User' }}</span></p>
-        </div>
-    </div>
+<main class="dashboard-bg min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl">
+        <header class="dashboard-hero mb-6 flex flex-col gap-6 rounded-3xl border border-white px-6 py-7 shadow-[0_18px_45px_rgba(37,99,235,.08)] sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <p class="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-xs font-bold text-blue-700 shadow-sm">
+                    <span aria-hidden="true">▥</span>
+                    ภาพรวมการใช้งาน
+                </p>
+                <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">สถิติการตรวจสอบ</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                    ดูจำนวนการตรวจสอบ แนวโน้ม และระดับความเสี่ยงของ URL และ QR Code ได้ในหน้าเดียว
+                </p>
+            </div>
+            <div class="relative z-10 flex flex-wrap items-center gap-3">
+                <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-sm" aria-label="เลือกช่วงเวลาของสถิติ">
+                    <a href="?period=7"
+                       {% if selected_period == '7' %}aria-current="page"{% endif %}
+                       class="rounded-lg px-3 py-2 transition {% if selected_period == '7' %}bg-blue-600 font-bold text-white shadow-md ring-2 ring-blue-200{% else %}font-semibold text-slate-500 hover:bg-slate-100{% endif %}">
+                        7 วัน
+                    </a>
+                    <a href="?period=30"
+                       {% if selected_period == '30' %}aria-current="page"{% endif %}
+                       class="rounded-lg px-3 py-2 transition {% if selected_period == '30' %}bg-blue-600 font-bold text-white shadow-md ring-2 ring-blue-200{% else %}font-semibold text-slate-500 hover:bg-slate-100{% endif %}">
+                        30 วัน
+                    </a>
+                    <a href="?period=all"
+                       {% if selected_period == 'all' %}aria-current="page"{% endif %}
+                       class="rounded-lg px-3 py-2 transition {% if selected_period == 'all' %}bg-blue-600 font-bold text-white shadow-md ring-2 ring-blue-200{% else %}font-semibold text-slate-500 hover:bg-slate-100{% endif %}">
+                        ทั้งหมด
+                    </a>
+                </div>
+                <a href="{% url 'statistics_pdf' %}?period={{ selected_period }}"
+                   class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-700">
+                    <span class="text-base" aria-hidden="true">↓</span>
+                    ดาวน์โหลดรายงาน PDF
+                </a>
+            </div>
+        </header>
 
-    <!-- การ์ดแสดงผลสถิติจริงจาก Views -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <p class="text-slate-500 text-sm font-medium">สแกนทั้งหมด</p>
-            <h2 class="text-3xl font-extrabold text-slate-800 mt-1">{{ total_scans|default:0 }}</h2>
+        <div class="mb-4 flex items-center gap-2 text-sm text-slate-500">
+            <span class="h-2.5 w-2.5 rounded-full bg-blue-600 ring-4 ring-blue-100"></span>
+            กำลังแสดงข้อมูล:
+            <strong class="text-blue-700">{{ selected_period_label }}</strong>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <p class="text-slate-500 text-sm font-medium">เว็บไซต์ปลอดภัย</p>
-            <h2 class="text-3xl font-extrabold text-emerald-600 mt-1">{{ safe_count|default:0 }}</h2>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <p class="text-slate-500 text-sm font-medium">มีความเสี่ยงปานกลาง</p>
-            <h2 class="text-3xl font-extrabold text-amber-500 mt-1">{{ warning_count|default:0 }}</h2>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <p class="text-slate-500 text-sm font-medium">พบภัยคุกคามอันตราย</p>
-            <h2 class="text-3xl font-extrabold text-rose-600 mt-1">{{ danger_count|default:0 }}</h2>
-        </div>
-    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-lg text-slate-800">สัดส่วนระดับความเสี่ยงที่ตรวจพบ</h3>
+        <section class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <article class="stat-card col-span-2 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600 to-blue-700 p-5 text-white lg:col-span-1">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-blue-100">ตรวจสอบทั้งหมด</p>
+                        <p class="mt-2 text-4xl font-black">{{ total_scans }}</p>
+                        <p class="mt-1 text-xs text-blue-100">รายการในช่วง {{ selected_period_label }}</p>
+                    </div>
+                    <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 text-xl">
+                        <span class="font-black" aria-hidden="true">⌕</span>
+                    </span>
+                </div>
+            </article>
+
+            <article class="stat-card rounded-2xl border border-emerald-200 bg-white p-5">
+                <div class="flex items-start justify-between">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                        <span class="text-lg font-black" aria-hidden="true">✓</span>
+                    </span>
+                    <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{{ safe_percentage }}%</span>
+                </div>
+                <p class="mt-4 text-3xl font-black text-slate-900">{{ safe_count }}</p>
+                <p class="text-sm font-semibold text-slate-600">ปลอดภัย</p>
+                <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-emerald-100">
+                    <div class="h-full rounded-full bg-emerald-500" style="width: {{ safe_percentage }}%"></div>
+                </div>
+            </article>
+
+            <article class="stat-card rounded-2xl border border-amber-200 bg-white p-5">
+                <div class="flex items-start justify-between">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                        <span class="text-lg font-black" aria-hidden="true">!</span>
+                    </span>
+                    <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{{ warning_percentage }}%</span>
+                </div>
+                <p class="mt-4 text-3xl font-black text-slate-900">{{ warning_count }}</p>
+                <p class="text-sm font-semibold text-slate-600">ควรระวัง</p>
+                <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-amber-100">
+                    <div class="h-full rounded-full bg-amber-500" style="width: {{ warning_percentage }}%"></div>
+                </div>
+            </article>
+
+            <article class="stat-card rounded-2xl border border-rose-200 bg-white p-5">
+                <div class="flex items-start justify-between">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                        <span class="text-lg font-black" aria-hidden="true">×</span>
+                    </span>
+                    <span class="rounded-full bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700">{{ danger_percentage }}%</span>
+                </div>
+                <p class="mt-4 text-3xl font-black text-slate-900">{{ danger_count }}</p>
+                <p class="text-sm font-semibold text-slate-600">อันตราย</p>
+                <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-rose-100">
+                    <div class="h-full rounded-full bg-rose-500" style="width: {{ danger_percentage }}%"></div>
+                </div>
+            </article>
+        </section>
+
+        <section class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <article class="panel-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+                <div class="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-slate-900">แนวโน้มการตรวจสอบ</h2>
+                        <p class="mt-1 text-xs text-slate-500">จำนวนรายการที่ตรวจสอบในช่วง {{ selected_period_label }}</p>
+                    </div>
+                    <span class="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+                        สูงสุด {{ trend_max }} รายการ
+                    </span>
+                </div>
+                <div class="h-72"><canvas id="trendChart"></canvas></div>
+            </article>
+
+            <article class="panel-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-3">
+                    <h2 class="text-lg font-extrabold text-slate-900">ผลการตรวจสอบ</h2>
+                    <p class="mt-1 text-xs text-slate-500">สัดส่วนแต่ละระดับความเสี่ยง</p>
+                </div>
+                <div class="h-64"><canvas id="riskChart"></canvas></div>
+                <div class="mt-3 rounded-xl bg-slate-50 p-3 text-center text-xs leading-5 text-slate-500">
+                    พบรายการที่ต้องระวังหรืออันตรายรวม
+                    <strong class="text-slate-800">{{ warning_and_danger_count }} รายการ</strong>
+                </div>
+            </article>
+        </section>
+
+        <section class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <article class="panel-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+                <h2 class="text-lg font-extrabold text-slate-900">ช่องทางที่ใช้ตรวจสอบ</h2>
+                <p class="mt-1 text-xs text-slate-500">ผู้ใช้ส่งข้อมูลเข้าระบบด้วยวิธีใดบ้าง</p>
+                <div class="mt-4 h-56"><canvas id="sourceChart"></canvas></div>
+            </article>
+
+            <article class="panel-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-3">
+                <div class="flex items-start gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                        <span class="text-lg font-black" aria-hidden="true">i</span>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-extrabold text-slate-900">สิ่งที่ควรรู้จากสถิตินี้</h2>
+                        <p class="mt-1 text-sm leading-6 text-slate-500">คำอธิบายสั้น ๆ เพื่อช่วยให้เข้าใจตัวเลขได้ง่ายขึ้น</p>
+                    </div>
+                </div>
+                <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div class="rounded-xl bg-rose-50 p-4">
+                        <p class="text-sm font-bold text-rose-800">รายการเสี่ยงยังต้องตรวจสอบ</p>
+                        <p class="mt-1 text-xs leading-5 text-rose-700">
+                            หากระบบแจ้งว่า “ควรระวัง” หรือ “อันตราย” ไม่ควรกรอกข้อมูลส่วนตัวหรือดาวน์โหลดไฟล์
+                        </p>
+                    </div>
+                    <div class="rounded-xl bg-blue-50 p-4">
+                        <p class="text-sm font-bold text-blue-800">ตรวจชื่อเว็บไซต์ทุกครั้ง</p>
+                        <p class="mt-1 text-xs leading-5 text-blue-700">
+                            ควรอ่านชื่อโดเมนให้ครบ โดยเฉพาะลิงก์จาก QR Code หรือข้อความที่ไม่รู้จัก
+                        </p>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-col gap-2 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-lg font-extrabold text-slate-900">การใช้งานล่าสุด</h2>
+                    <p class="mt-1 text-xs text-slate-500">สรุปจำนวนการตรวจสอบแยกตามผู้ใช้งาน</p>
+                </div>
+                <span class="text-xs font-semibold text-slate-400">ผู้ใช้งานทั้งหมด {{ total_users }} คน</span>
             </div>
-            <div class="max-w-md mx-auto py-4">
-                <canvas id="memberChart" height="200"></canvas>
+            <div class="overflow-x-auto">
+                <table class="stats-table w-full min-w-[760px] text-sm">
+                    <thead class="bg-slate-100 text-xs text-slate-900 font-black border-b border-slate-200 uppercase tracking-wider">
+                        <tr>
+                            <th>ผู้ใช้งาน</th>
+                            <th>ทั้งหมด</th>
+                            <th>ปลอดภัย</th>
+                            <th>ควรระวัง</th>
+                            <th>อันตราย</th>
+                            <th>ตรวจสอบล่าสุด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in sample_users %}
+                        <tr class="hover:bg-slate-50">
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 font-black text-white shadow-sm">
+                                        {{ user.name|slice:":1" }}
+                                    </span>
+                                    <div>
+                                        <p class="font-bold text-slate-900">{{ user.name }}</p>
+                                        <p class="text-xs text-slate-400">{{ user.email }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="font-extrabold text-slate-800">{{ user.total }}</td>
+                            <td><span class="rounded-lg bg-emerald-50 px-2.5 py-1 font-bold text-emerald-700">{{ user.safe }}</span></td>
+                            <td><span class="rounded-lg bg-amber-50 px-2.5 py-1 font-bold text-amber-700">{{ user.warning }}</span></td>
+                            <td><span class="rounded-lg bg-rose-50 px-2.5 py-1 font-bold text-rose-700">{{ user.danger }}</span></td>
+                            <td class="text-slate-500">{{ user.last_scan }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="flex flex-col gap-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-64 flex flex-col justify-between overflow-hidden">
-                <h3 class="font-bold text-lg mb-2 text-slate-800">แหล่งภัยคุกคาม</h3>
-                <!-- เพิ่ม relative z-0 และ style="isolation: isolate;" เพื่อบล็อกการทะลุขึ้นไปทับ Navbar -->
-                <div id="memberMap" class="h-44 rounded-xl overflow-hidden relative z-0" style="isolation: isolate;"></div>
-            </div>
-            <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg">
-                <div class="text-xs font-bold uppercase tracking-wider opacity-80">Security Tip</div>
-                <h4 class="font-bold text-lg mt-2">ระวัง! QR Code ปลอม</h4>
-                <p class="text-indigo-100 text-sm mt-1">สแกนตรวจสอบลิงก์สั้นหรือ QR Code ทุกครั้งก่อนยินยอมดาวน์โหลดไฟล์หรือโอนเงิน</p>
-            </div>
-        </div>
+        </section>
+
+        <p class="mt-4 text-center text-xs text-slate-400">
+            ข้อมูลตัวอย่างสำหรับนำเสนอระบบ · รายงาน PDF มีรายละเอียดและรูปแบบเอกสารอย่างเป็นทางการ
+        </p>
     </div>
 </main>
+
+{{ trend_labels|json_script:"trend-labels" }}
+{{ trend_values|json_script:"trend-values" }}
+{{ source_labels|json_script:"source-labels" }}
+{{ source_values|json_script:"source-values" }}
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const memberCtx = document.getElementById('memberChart');
-new Chart(memberCtx, {
-    type: 'doughnut',
+const readStatsData = (id) => JSON.parse(document.getElementById(id).textContent);
+const chartFont = { family: "'Sarabun', 'Inter', sans-serif" };
+Chart.defaults.color = '#64748b';
+Chart.defaults.font.family = chartFont.family;
+
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
     data: {
-        labels: ['ปลอดภัย', 'มีความเสี่ยง', 'อันตราย'],
+        labels: readStatsData('trend-labels'),
         datasets: [{
-            data: [{{ safe_count|default:0 }}, {{ warning_count|default:0 }}, {{ danger_count|default:0 }}],
-            backgroundColor: ['#10b981', '#f59e0b', '#e11d48'],
-            borderWidth: 2,
-            borderColor: '#ffffff'
+            data: readStatsData('trend-values'),
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, .10)',
+            borderWidth: 3,
+            fill: true,
+            tension: .35,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#2563eb',
+            pointBorderWidth: 2
         }]
     },
     options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e2e8f0' } },
+            x: { grid: { display: false } }
         }
     }
 });
 
-const memberMap = L.map('memberMap', { zoomControl: false }).setView([13.7563, 100.5018], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(memberMap);
-L.marker([13.7563, 100.5018]).addTo(memberMap).bindPopup('Bangkok, Thailand');
+new Chart(document.getElementById('riskChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['ปลอดภัย', 'ค่อนข้างปลอดภัย', 'ควรระวัง', 'มีแนวโน้มอันตราย', 'อันตราย'],
+        datasets: [{
+            data: [{{ safe_exact_count }}, {{ mostly_safe_count }}, {{ warning_count }}, {{ mostly_danger_count }}, {{ danger_exact_count }}],
+            backgroundColor: ['#10b981', '#0d9488', '#f59e0b', '#ea580c', '#e11d48'],
+            borderColor: '#ffffff', borderWidth: 4
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+            legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 16 } }
+        }
+    }
+});
+
+new Chart(document.getElementById('sourceChart'), {
+    type: 'bar',
+    data: {
+        labels: readStatsData('source-labels'),
+        datasets: [{
+            data: readStatsData('source-values'),
+            backgroundColor: ['#2563eb', '#7c3aed', '#0891b2'],
+            borderRadius: 7, barThickness: 22
+        }]
+    },
+    options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e2e8f0' } },
+            y: { grid: { display: false } }
+        }
+    }
+});
 </script>
 {% endblock %}

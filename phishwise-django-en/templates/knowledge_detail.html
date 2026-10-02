@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ article.title|default:"Knowledge Detail" }} | PhishWise Security Knowledge{% endblock %}
+
+{% block content %}
+<main class="bg-slate-50 min-h-screen py-10">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        
+        <!-- Breadcrumb / Back Button -->
+        <div class="mb-8">
+            <a href="{% url 'knowledge' %}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Back to Knowledge Base
+            </a>
+        </div>
+
+        {% if article %}
+            <!-- Article Header -->
+            <header class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="px-3.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider">
+                        {{ article.category }}
+                    </span>
+                    <span class="text-xs text-slate-400 font-medium">⏱️ {{ article.read_time|default:"3 min read" }}</span>
+                </div>
+
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight mb-6">
+                    {{ article.title }}
+                </h1>
+
+                <!-- Author & Date Metadata -->
+                <div class="flex items-center justify-between border-y border-slate-200 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                            {{ article.author|slice:":1" }}
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-slate-800">{{ article.author }}</div>
+                            <div class="text-xs text-slate-500">{{ article.author_role|default:"Cybersecurity Writer" }}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs sm:text-sm font-medium text-slate-400">
+                        Published on {{ article.date }}
+                    </div>
+                </div>
+            </header>
+
+            <!-- Hero Feature Image -->
+            {% if article.image %}
+            <div class="rounded-2xl overflow-hidden shadow-md mb-10 aspect-[16/9] border border-slate-200/80">
+                <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-full object-cover">
+            </div>
+            {% endif %}
+
+            <!-- Main Article Body -->
+            <article class="space-y-8 text-slate-700 leading-relaxed text-base sm:text-lg">
+                
+                <!-- Summary Box -->
+                {% if article.summary %}
+                <div class="p-6 bg-white rounded-2xl border-l-4 border-blue-600 shadow-sm text-slate-700 font-medium leading-relaxed">
+                    <p>{{ article.summary }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Markdown Content (Sanitized HTML) -->
+                {% if article.content_html %}
+                <div class="article-markdown-body space-y-2 text-slate-700 leading-relaxed text-base sm:text-lg">
+                    {{ article.content_html|safe }}
+                </div>
+                <style>
+                    .article-markdown-body h1 { font-size: 1.85rem; font-weight: 800; color: #0f172a; margin-top: 2rem; margin-bottom: 0.85rem; }
+                    .article-markdown-body h2 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2rem; margin-bottom: 0.75rem; }
+                    .article-markdown-body h3 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+                    .article-markdown-body h4 { font-size: 1.1rem; font-weight: 700; color: #334155; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+                    .article-markdown-body p { margin-bottom: 1rem; line-height: 1.75; color: #334155; }
+                    .article-markdown-body u { text-decoration: underline; }
+                    .article-markdown-body s { text-decoration: line-through; }
+                    .article-markdown-body .ql-align-center { text-align: center; }
+                    .article-markdown-body .ql-align-right { text-align: right; }
+                    .article-markdown-body .ql-align-justify { text-align: justify; }
+                    .article-markdown-body ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+                    .article-markdown-body ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+                    .article-markdown-body li { margin-bottom: 0.35rem; }
+                    .article-markdown-body a { color: #2563eb; font-weight: 600; text-decoration: underline; }
+                    .article-markdown-body a:hover { color: #1d4ed8; }
+                    .article-markdown-body blockquote { border-left: 4px solid #3b82f6; padding-left: 1rem; font-style: italic; color: #475569; margin: 1.25rem 0; background: #f8fafc; padding-top: 0.5rem; padding-bottom: 0.5rem; border-radius: 0 0.5rem 0.5rem 0; }
+                    .article-markdown-body code { background: #f1f5f9; color: #e11d48; padding: 0.15rem 0.4rem; border-radius: 0.375rem; font-size: 0.875em; font-family: monospace; }
+                    .article-markdown-body pre { background: #0f172a; color: #f8fafc; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; margin-bottom: 1.25rem; }
+                    .article-markdown-body pre code { background: transparent; color: inherit; padding: 0; }
+                    .article-markdown-body img { border-radius: 0.75rem; max-height: 450px; object-fit: cover; margin: 1.5rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+                    .article-markdown-body table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95em; }
+                    .article-markdown-body th, .article-markdown-body td { border: 1px solid #cbd5e1; padding: 0.6rem 0.85rem; text-align: left; }
+                    .article-markdown-body th { background-color: #f1f5f9; font-weight: 700; color: #1e293b; }
+                </style>
+                {% endif %}
+
+                <!-- Detailed Sections Loop (Legacy fallback if no markdown) -->
+                {% if not article.content_html and article.sections %}
+                    {% for section in article.sections %}
+                    <section class="space-y-4 pt-4">
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
+                            {{ section.title }}
+                        </h2>
+                        
+                        <p class="text-slate-600 leading-relaxed whitespace-pre-line">
+                            {{ section.text }}
+                        </p>
+
+                        
+                        {% if section.examples %}
+                        <div class="my-6 p-5 bg-slate-900 rounded-2xl text-white shadow-lg space-y-3">
+                            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">🔍 URL Comparison Examples</div>
+                            {% for ex in section.examples %}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl {% if ex.is_safe %}bg-emerald-950/60 border border-emerald-500/30{% else %}bg-rose-950/60 border border-rose-500/30{% endif %} gap-2">
+                                <div class="flex items-center gap-2">
+                                    {% if ex.is_safe %}
+                                    <span class="px-2 py-0.5 bg-emerald-500 text-white rounded text-xs font-bold">Safe</span>
+                                    {% else %}
+                                    <span class="px-2 py-0.5 bg-rose-500 text-white rounded text-xs font-bold">Dangerous</span>
+                                    {% endif %}
+                                    <span class="text-xs text-slate-300 font-medium">{{ ex.label }}:</span>
+                                </div>
+                                <code class="text-xs font-mono {% if ex.is_safe %}text-emerald-300{% else %}text-rose-300{% endif %} break-all">
+                                    {{ ex.url }}
+                                </code>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        
+                        {% if section.image %}
+                        <figure class="my-6">
+                            <div class="rounded-xl overflow-hidden border border-slate-200 shadow-sm max-h-[400px]">
+                                <img src="{{ section.image }}" alt="{{ section.title }}" class="w-full h-full object-cover">
+                            </div>
+                            {% if section.caption %}
+                            <figcaption class="mt-2 text-center text-xs text-slate-500 font-medium">
+                                {{ section.caption }}
+                            </figcaption>
+                            {% endif %}
+                        </figure>
+                        {% endif %}
+
+                        
+                        {% if section.callout %}
+                        <div class="p-5 rounded-2xl border my-6 {% if section.callout.type == 'warning' %}bg-amber-50 border-amber-200 text-amber-900{% else %}bg-blue-50 border-blue-200 text-blue-900{% endif %}">
+                            <h4 class="font-bold text-base mb-1">{{ section.callout.title }}</h4>
+                            <p class="text-sm leading-relaxed opacity-90 whitespace-pre-line">{{ section.callout.text }}</p>
+                        </div>
+                        {% endif %}
+                    </section>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Key Takeaways Box -->
+                {% if article.key_takeaways %}
+                <div class="mt-10 p-6 sm:p-8 bg-slate-900 rounded-2xl text-white shadow-xl space-y-4">
+                    <div class="flex items-center gap-2 text-amber-400 font-bold text-lg">
+                        <span>📌</span> Key Safety Takeaways
+                    </div>
+                    <ul class="space-y-3 text-sm sm:text-base text-slate-300">
+                        {% for item in article.key_takeaways %}
+                        <li class="flex items-start gap-3">
+                            <span class="text-emerald-400 font-bold">✓</span>
+                            <span>{{ item }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+            </article>
+
+            <!-- CTA Scan Link Banner -->
+            <div class="mt-12 p-8 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div>
+                    <h3 class="text-xl font-bold mb-2">Suspicious About a Link You Received?</h3>
+                    <p class="text-blue-100 text-sm">Inspect suspicious links instantly with PhishWise AI</p>
+                </div>
+                <a href="{% url 'home' %}" class="px-6 py-3 bg-white text-blue-600 font-bold rounded-xl shadow-md hover:bg-blue-50 transition-all shrink-0">
+                    Inspect Link Free 🔍
+                </a>
+            </div>
+
+            <!-- Related Articles Section -->
+            {% if related_articles %}
+            <section class="mt-16 pt-10 border-t border-slate-200">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">Related Security Articles</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {% for item in related_articles %}
+                    <a href="{% url 'knowledge_detail' item.id %}" class="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col">
+                        <div class="aspect-[16/10] overflow-hidden">
+                            <img src="{{ item.image }}" alt="{{ item.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow">
+                            <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">{{ item.category }}</span>
+                            <h4 class="text-sm font-bold text-slate-800 line-clamp-2 group-hover:text-blue-600 transition-colors mb-2">{{ item.title }}</h4>
+                            <span class="mt-auto text-xs text-slate-400 font-medium">{{ item.date }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+        {% else %}
+            <!-- Article Not Found State -->
+            <div class="py-20 text-center">
+                <div class="w-16 h-16 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🔍</div>
+                <h3 class="text-xl font-bold text-slate-700 mb-2">Article Not Found</h3>
+                <p class="text-slate-500 mb-6">This article may have been removed or the link is incorrect.</p>
+                <a href="{% url 'knowledge' %}" class="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow hover:bg-blue-700 transition-all">Back to Knowledge Base</a>
+            </div>
+        {% endif %}
+
+    </div>
+</main>
+{% endblock %}

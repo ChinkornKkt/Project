@@ -1,0 +1,79 @@
+/* Shared polish for the Django-rendered templates. */
+
+:root {
+	--phishwise-primary: #0F172A;
+	--phishwise-secondary: #1E40AF;
+	--phishwise-accent: #7C3AED;
+	--phishwise-success: #10B981;
+	--phishwise-danger: #EF4444;
+	--phishwise-warning: #F59E0B;
+	--phishwise-background: #F8FAFC;
+	--phishwise-surface: #FFFFFF;
+	--phishwise-font-sans: 'Inter', 'Sarabun', sans-serif;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	font-family: var(--phishwise-font-sans);
+	background:
+		radial-gradient(circle at top left, rgba(59, 130, 246, 0.10), transparent 30%),
+		radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 24%),
+		linear-gradient(180deg, #ffffff 0%, var(--phishwise-background) 100%);
+	color: var(--phishwise-primary);
+}
+
+::selection {
+	background: rgba(37, 99, 235, 0.16);
+	color: var(--phishwise-primary);
+}
+
+.animate-fade-in {
+	animation: fadeIn 0.35s ease-out both;
+}
+
+.animate-fade-in-up {
+	animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-bounce-in {
+	animation: bounceIn 0.45s ease-out both;
+}
+
+.line-clamp-2 {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.article-content p,
+.article-content li {
+	color: #475569;
+	line-height: 1.9;
+}
+
+.article-content h2,
+.article-content h3 {
+	color: #0f172a;
+	font-weight: 800;
+	margin-top: 1.5rem;
+	margin-bottom: 0.75rem;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(8px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+	from { opacity: 0; transform: translateY(20px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounceIn {
+	0% { opacity: 0; transform: scale(0.94) translateY(12px); }
+	100% { opacity: 1; transform: scale(1) translateY(0); }
+}

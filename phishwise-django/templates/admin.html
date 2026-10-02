@@ -1,62 +1,2448 @@
 {% extends 'base.html' %}
-{% block title %}Admin | PhishWise{% endblock %}
+{% load static %}
+{% block title %}ผู้ดูแลระบบ | PhishWise{% endblock %}
+
 {% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="flex h-screen bg-slate-50 text-slate-900 overflow-hidden">
-    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
-        <div class="h-16 flex items-center px-4 border-b border-slate-100 font-bold text-blue-600">PhishWise Admin</div>
-        <nav class="p-3 space-y-2">
-            <button class="w-full text-left px-3 py-3 rounded-xl bg-blue-600 text-white">ภาพรวมระบบ</button>
-            <button class="w-full text-left px-3 py-3 rounded-xl hover:bg-slate-50">จัดการผู้ใช้</button>
-            <button class="w-full text-left px-3 py-3 rounded-xl hover:bg-slate-50">รายการแจ้งเบาะแส</button>
-            <button class="w-full text-left px-3 py-3 rounded-xl hover:bg-slate-50">จัดการเว็บไซต์</button>
-            <button class="w-full text-left px-3 py-3 rounded-xl hover:bg-slate-50">คลังความรู้</button>
-        </nav>
-        <div class="p-4 border-t border-slate-100 mt-auto"><a class="text-red-500 font-semibold" href="{% url 'logout' %}">ออกจากระบบ</a></div>
-    </aside>
-    <main class="flex-1 overflow-y-auto">
-        <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
-            <h1 class="text-xl font-bold">ภาพรวมระบบ</h1>
-            <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">ระบบทำงานปกติ</span>
-        </header>
-        <div class="p-8 max-w-7xl mx-auto space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><p class="text-slate-500 text-sm">การเข้าชมวันนี้</p><h3 class="text-2xl font-bold">12,540</h3></div>
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><p class="text-slate-500 text-sm">ภัยคุกคาม</p><h3 class="text-2xl font-bold">15,000</h3></div>
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><p class="text-slate-500 text-sm">แจ้งเบาะแสใหม่</p><h3 class="text-2xl font-bold">15</h3></div>
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><p class="text-slate-500 text-sm">บทความในคลัง</p><h3 class="text-2xl font-bold">45</h3></div>
+<div class="flex h-screen bg-slate-100 font-sans text-slate-900 overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- 🛡️ SIDEBAR NAVIGATION                      -->
+    <!-- ========================================== -->
+    <aside id="admin-sidebar" class="w-64 bg-white text-slate-700 border-r border-slate-200 transition-all duration-300 flex-col z-30 shrink-0 shadow-sm hidden md:flex fixed md:relative h-screen inset-y-0 left-0">
+        <!-- Logo & Branding -->
+        <div class="h-16 flex items-center justify-between px-5 border-b border-slate-200 bg-white">
+            <div class="flex items-center gap-2.5 text-blue-600 font-extrabold text-xl tracking-tight">
+                <a href="{% url 'home' %}" class="flex items-center gap-2 font-bold text-slate-900">
+                    <i class="fa-solid fa-shield-halved text-2xl text-blue-600"></i>
+                    <span class="sidebar-text text-slate-900 font-bold">PhishWise</span>
+                </a>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><canvas id="adminChart" height="140"></canvas></div>
-                <div class="bg-[#1e293b] p-6 rounded-2xl text-white shadow-lg">
-                    <h3 class="font-bold text-lg mb-3">Live Threat Map</h3>
-                    <div id="adminMap" class="h-72 rounded-xl overflow-hidden border border-slate-700"></div>
+            <button id="sidebar-toggle-btn" type="button" class="text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition" title="ย่อ/ขยายเมนู">
+                <i class="fa-solid fa-bars text-base"></i>
+            </button>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto">
+            <button type="button" data-tab="dashboard" class="nav-tab-btn active flex items-center justify-between w-full px-3.5 py-3 rounded-xl transition-all font-bold text-sm bg-blue-50 text-blue-600 border border-blue-200 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-chart-pie text-lg w-5 text-center text-blue-600"></i>
+                    <span class="sidebar-text">ภาพรวมระบบ</span>
+                </div>
+            </button>
+
+            <button type="button" data-tab="users" class="nav-tab-btn flex items-center justify-between w-full px-3.5 py-3 rounded-xl transition-all font-semibold text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-users text-lg w-5 text-center text-slate-500"></i>
+                    <span class="sidebar-text">จัดการผู้ใช้</span>
+                </div>
+            </button>
+
+            <button type="button" data-tab="reports" class="nav-tab-btn flex items-center justify-between w-full px-3.5 py-3 rounded-xl transition-all font-semibold text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-flag text-lg w-5 text-center text-slate-500"></i>
+                    <span class="sidebar-text">รายการแจ้งเบาะแส</span>
+                </div>
+                {% if pending_reports_count > 0 %}
+                <span class="sidebar-text text-xs bg-rose-500 text-white px-2 py-0.5 rounded-full font-extrabold animate-pulse">{{ pending_reports_count }}</span>
+                {% endif %}
+            </button>
+
+            <button type="button" data-tab="sites" class="nav-tab-btn flex items-center justify-between w-full px-3.5 py-3 rounded-xl transition-all font-semibold text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-globe text-lg w-5 text-center text-slate-500"></i>
+                    <span class="sidebar-text">จัดการรายการตรวจสอบ</span>
+                </div>
+            </button>
+
+            <button type="button" data-tab="knowledge" class="nav-tab-btn flex items-center justify-between w-full px-3.5 py-3 rounded-xl transition-all font-semibold text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-book-open text-lg w-5 text-center text-slate-500"></i>
+                    <span class="sidebar-text">คลังความรู้</span>
+                </div>
+            </button>
+        </nav>
+
+        <!-- Bottom Actions -->
+        <div class="p-3 border-t border-slate-200 bg-slate-50/60 space-y-1">
+            <a href="{% url 'home' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-all font-medium text-xs">
+                <i class="fa-solid fa-arrow-left w-5 text-center"></i>
+                <span class="sidebar-text">กลับสู่หน้าหลัก</span>
+            </a>
+            <a href="{% url 'logout' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all font-medium text-xs">
+                <i class="fa-solid fa-right-from-bracket w-5 text-center"></i>
+                <span class="sidebar-text">ออกจากระบบ</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile Sidebar Overlay (backdrop) -->
+    <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden" onclick="closeMobileSidebar()" aria-hidden="true"></div>
+
+    <!-- ========================================== -->
+    <!-- 🚀 MAIN CONTENT AREA                       -->
+    <!-- ========================================== -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- Top Navbar -->
+        <header class="h-16 bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-20 px-6 sm:px-8 flex items-center justify-between shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <button id="mobile-sidebar-btn" type="button" onclick="toggleMobileSidebar()"
+                    class="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition mr-1"
+                    title="เปิด/ปิดเมนู" aria-label="เปิด/ปิดเมนูด้านข้าง">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <h1 id="active-tab-title" class="text-xl font-black text-slate-900">ภาพรวมระบบ</h1>
+            </div>
+            
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Pending Reports Bell Alert Button -->
+                <button type="button" onclick="switchAdminTab('reports')" title="รายงานที่รอการตรวจสอบ"
+                    class="relative p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer">
+                    <i class="fa-solid fa-bell text-lg"></i>
+                    {% if pending_reports_count and pending_reports_count > 0 %}
+                    <span class="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 bg-rose-500 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs animate-bounce">
+                        {{ pending_reports_count }}
+                    </span>
+                    {% endif %}
+                </button>
+
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="hidden sm:inline">ระบบทำงานปกติ</span>
+                </div>
+                <div class="flex items-center gap-2.5 pl-2 sm:border-l sm:border-slate-200">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                        {{ current_user.name|default:"A"|slice:":1"|upper }}
+                    </div>
+                    <div class="hidden md:block text-left">
+                        <p class="text-xs font-bold text-slate-800 leading-tight">{{ current_user.name|default:"ผู้ดูแลระบบ" }}</p>
+                        <p class="text-[10px] text-slate-500 font-bold">ผู้ดูแลระบบ</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </header>
+
+        <!-- Dynamic Content Body -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/80">
+            <div class="max-w-7xl mx-auto space-y-6 pb-12">
+
+                <!-- ========================================== -->
+                <!-- 1. 📊 TAB: ภาพรวมระบบ (DASHBOARD)            -->
+                <!-- ========================================== -->
+                <section id="tab-content-dashboard" class="tab-pane space-y-6">
+
+                    <!-- Threat Pending Alert Banner -->
+                    {% if pending_reports_count and pending_reports_count > 0 %}
+                    <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-triangle-exclamation animate-pulse"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-sm sm:text-base">มีการแจ้งเบาะแสเว็บไซต์น่าสงสัยใหม่ ({{ pending_reports_count }} รายการรอการตรวจสอบ)</h4>
+                                <p class="text-sm text-white font-medium mt-0.5">มีผู้ใช้รายงานเว็บไซต์อันตรายหรือฟิชชิ่งเข้ามาในระบบ โปรดตรวจสอบและยืนยันสถานะเพื่ออัปเดตการป้องกัน</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="switchAdminTab('reports')"
+                            class="px-4 py-2 bg-white text-rose-700 hover:bg-rose-50 rounded-xl font-extrabold text-sm transition shadow-sm shrink-0 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
+                            <span>ไปที่หน้ารายงาน</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 4 Stat Summary Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <!-- Card 1 -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center gap-4 hover:shadow-md hover:border-blue-300 transition-all group">
+                            <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">การตรวจสอบทั้งหมด</p>
+                                <h3 class="text-3xl font-black text-slate-900 mt-0.5">{{ total_scans|default:0 }}</h3>
+                                <p class="text-xs text-slate-700 font-medium mt-0.5">บันทึกในฐานข้อมูลระบบ</p>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center gap-4 hover:shadow-md hover:border-rose-300 transition-all group">
+                            <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">ภัยคุกคามที่ตรวจพบ</p>
+                                <h3 class="text-3xl font-black text-rose-600 mt-0.5">{{ danger_scans|default:0 }}</h3>
+                                <p class="text-xs text-slate-700 font-medium mt-0.5">อันตราย & มีแนวโน้มอันตราย</p>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center gap-4 hover:shadow-md hover:border-amber-300 transition-all group">
+                            <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-flag"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">แจ้งเบาะแสรอตรวจ</p>
+                                <h3 class="text-3xl font-black text-amber-600 mt-0.5">{{ pending_reports_count|default:0 }}</h3>
+                                <p class="text-xs text-slate-700 font-medium mt-0.5">จากสมาชิกทั้งหมด {{ all_reports|length }} รายการ</p>
+                            </div>
+                        </div>
+
+                        <!-- Card 4 -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center gap-4 hover:shadow-md hover:border-emerald-300 transition-all group">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">สมาชิกในระบบ</p>
+                                <h3 class="text-3xl font-black text-slate-900 mt-0.5">{{ total_users|default:0 }}</h3>
+                                <p class="text-xs text-emerald-800 font-bold mt-0.5">ใช้งานได้ {{ active_users|default:0 }} บัญชี</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Recent Activity Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <!-- Left: Threat Distribution & Stats (8 cols) -->
+                        <div class="lg:col-span-8 space-y-6">
+                            
+                            <!-- Threat Risk Level Distribution Chart Card -->
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                                            <i class="fa-solid fa-chart-simple text-blue-600"></i> สัดส่วนผลการประเมินความเสี่ยง (5 ระดับ)
+                                        </h3>
+                                        <p class="text-xs text-slate-700 font-medium mt-0.5">จำแนกตามเกณฑ์ของระบบ PhishWise</p>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-800 font-mono bg-slate-100 px-3 py-1 rounded-full border border-slate-200">ทั้งหมด {{ total_scans }} ครั้ง</span>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                                    <div class="md:col-span-6 h-56 relative flex items-center justify-center">
+                                        <canvas id="riskDistributionChart"></canvas>
+                                    </div>
+                                    <div class="md:col-span-6 space-y-2.5 text-sm">
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 font-medium">
+                                            <span class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span> ปลอดภัย (0–20)</span>
+                                            <span class="font-bold font-mono text-emerald-950 bg-white/80 px-2.5 py-0.5 rounded-lg border border-emerald-100">{{ safe_count }} ครั้ง</span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-teal-50/80 border border-teal-200 text-teal-950 font-medium">
+                                            <span class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-teal-500 shrink-0"></span> ค่อนข้างปลอดภัย (21–40)</span>
+                                            <span class="font-bold font-mono text-teal-950 bg-white/80 px-2.5 py-0.5 rounded-lg border border-teal-100">{{ mostly_safe_count }} ครั้ง</span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-950 font-medium">
+                                            <span class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span> ควรระวัง (41–60)</span>
+                                            <span class="font-bold font-mono text-amber-950 bg-white/80 px-2.5 py-0.5 rounded-lg border border-amber-100">{{ warning_count }} ครั้ง</span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-orange-50/80 border border-orange-200 text-orange-950 font-medium">
+                                            <span class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-orange-500 shrink-0"></span> มีแนวโน้มอันตราย (61–80)</span>
+                                            <span class="font-bold font-mono text-orange-950 bg-white/80 px-2.5 py-0.5 rounded-lg border border-orange-100">{{ mostly_danger_count }} ครั้ง</span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-50/80 border border-rose-200 text-rose-950 font-medium">
+                                            <span class="flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-rose-500 shrink-0"></span> อันตราย (81–100)</span>
+                                            <span class="font-bold font-mono text-rose-950 bg-white/80 px-2.5 py-0.5 rounded-lg border border-rose-100">{{ danger_count }} ครั้ง</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Top Scanned Domains List -->
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                                        <i class="fa-solid fa-globe text-indigo-600"></i> โดเมนที่ได้รับการตรวจสอบสูงสุด
+                                    </h3>
+                                    <button type="button" onclick="switchAdminTab('sites')" class="text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><span>ดูทั้งหมด</span><i class="fa-solid fa-arrow-right text-[10px]"></i></button>
+                                </div>
+                                <div class="space-y-3">
+                                    {% for stat in domain_statistics|slice:":5" %}
+                                    <div class="p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/90 flex items-center justify-between gap-4 transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="font-mono text-sm font-bold text-slate-900 truncate">{{ stat.domain }}</p>
+                                            <p class="text-sm text-slate-700 font-medium mt-0.5">
+                                                ผู้ตรวจไม่ซ้ำ {{ stat.unique_scanner_count }} คน · รายงาน {{ stat.report_count }} รายการ (อนุมัติ {{ stat.approved_report_count }})
+                                            </p>
+                                        </div>
+                                        <div class="text-right shrink-0 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+                                            <span class="text-base font-black font-mono text-blue-700">{{ stat.scan_count }} ครั้ง</span>
+                                            <!-- <span class="text-xs text-slate-700 font-bold block -mt-0.5">ครั้ง</span> -->
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <p class="text-center py-6 text-sm text-slate-600 font-medium">ยังไม่มีสถิติสะสมของโดเมน</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Right: Live Feed / Recent Scans (4 cols) -->
+                        <div class="lg:col-span-4 space-y-6">
+                            
+                            <!-- Real-time / Recent Scans Card -->
+                            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                                <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                                    <div>
+                                        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                                            <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> การตรวจสอบล่าสุด
+                                        </h3>
+                                        <p class="text-sm text-slate-600 font-medium mt-0.5">รายการตรวจล่าสุดในระบบ PhishWise</p>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        ล่าสุด
+                                    </span>
+                                </div>
+
+                                <div class="divide-y divide-slate-100">
+                                    {% for scan in recent_scans %}
+                                    <div class="recent-scan-item p-4 hover:bg-slate-50/90 transition-colors">
+                                        <!-- Row 1: Status dot + URL + Status Badge -->
+                                        <div class="flex items-center justify-between gap-2.5">
+                                             <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                {% if scan.status == 'danger' %}
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 ring-4 ring-rose-100"></span>
+                                                {% elif scan.status == 'mostly_danger' %}
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0 ring-4 ring-orange-100"></span>
+                                                {% elif scan.status == 'warning' %}
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0 ring-4 ring-amber-100"></span>
+                                                {% elif scan.status == 'mostly_safe' %}
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0 ring-4 ring-teal-100"></span>
+                                                {% else %}
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span>
+                                                {% endif %}
+                                                <span class="font-mono text-xs sm:text-sm font-bold text-slate-900 truncate flex-1" title="{{ scan.url }}">{{ scan.url }}</span>
+                                            </div>
+                                            <span class="shrink-0 text-xs font-bold px-2.5 py-1 rounded-md border
+                                                {% if scan.status == 'danger' %}bg-rose-100 text-rose-800 border-rose-200
+                                                {% elif scan.status == 'mostly_danger' %}bg-orange-100 text-orange-800 border-orange-200
+                                                {% elif scan.status == 'warning' %}bg-amber-100 text-amber-800 border-amber-200
+                                                {% elif scan.status == 'mostly_safe' %}bg-teal-100 text-teal-800 border-teal-200
+                                                {% else %}bg-emerald-100 text-emerald-800 border-emerald-200{% endif %}">
+                                                {{ scan.status_label }}
+                                            </span>
+                                        </div>
+                                        <!-- Row 2: User email and Timestamp -->
+                                        <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-700 font-medium">
+                                            <span class="truncate flex items-center gap-1.5 text-slate-800">
+                                                <i class="fa-regular fa-user text-slate-500"></i>
+                                                <span>{% if scan.user %}{{ scan.user.email }}{% else %}ผู้ใช้ทั่วไป{% endif %}</span>
+                                            </span>
+                                            <span class="font-mono text-slate-700 font-semibold shrink-0 ml-2 flex items-center gap-1.5">
+                                                <i class="fa-regular fa-clock text-slate-500"></i>
+                                                {{ scan.timestamp|date:'d/m/Y H:i' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="p-8 text-center text-sm text-slate-600 font-medium">ยังไม่มีข้อมูลการตรวจสอบ</div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Scans Pagination Footer -->
+                                <div class="px-4 py-3.5 border-t border-slate-100 flex flex-col gap-2.5 bg-slate-50/60" id="scans-pagination">
+                                    <div class="flex items-center justify-between text-xs text-slate-700">
+                                        <span id="scans-page-info" class="font-semibold text-slate-800">กำลังโหลด...</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <label for="scans-per-page" class="text-slate-700 font-semibold">แสดง:</label>
+                                            <select id="scans-per-page" onchange="changePerPage('scans', this.value)"
+                                                class="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer hover:border-slate-300 transition">
+                                                <option value="5" selected>5</option>
+                                                <option value="10">10</option>
+                                                <option value="15">15</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between pt-2 border-t border-slate-200/70">
+                                        <div class="flex items-center gap-1" id="scans-pagination-nav"></div>
+                                        <a href="{% url 'history' %}" class="text-xs font-bold text-blue-700 hover:text-blue-800 transition flex items-center gap-1"><span>ดูประวัติทั้งหมด</span><i class="fa-solid fa-arrow-right text-[10px]"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </section>
+
+
+                <!-- ========================================== -->
+                <!-- 2. 👥 TAB: จัดการผู้ใช้ (USERS)               -->
+                <!-- ========================================== -->
+                <section id="tab-content-users" class="tab-pane hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        
+                        <!-- Table Header Controls -->
+                        <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+                            <div>
+                                <h2 class="text-lg font-extrabold text-slate-900">จัดการผู้ใช้ในระบบ</h2>
+                            </div>
+                            
+                            <div class="relative w-full sm:w-72">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                                <input type="text" id="user-search-input" onkeyup="filterUsersTable()" placeholder="ค้นหาชื่อหรืออีเมล..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- Users Table -->
+                        <div class="overflow-x-auto">
+                            <table id="users-table" class="w-full min-w-[650px] text-left text-sm">
+                                <thead class="bg-slate-100 text-slate-900 text-xs uppercase border-b border-slate-200 font-black tracking-wider">
+                                    <tr>
+                                        <th class="p-4 w-12 text-center">#</th>
+                                        <th class="p-4">สมาชิก</th>
+                                        <th class="p-4">วันที่สมัคร</th>
+                                        <th class="p-4">สถานะ</th>
+                                        <th class="p-4">บทบาท</th>
+                                        <th class="p-4 text-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    {% for u in users %}
+                                    <tr class="user-row hover:bg-slate-50/80 transition-colors">
+                                        <td class="p-4 text-center text-sm text-slate-600 font-mono font-bold">{{ forloop.counter }}</td>
+                                        <td class="p-4">
+                                            <p class="font-bold text-slate-900 user-name">{{ u.get_full_name|default:u.username }}</p>
+                                            <p class="text-sm text-slate-600 font-medium user-email">{{ u.email }}</p>
+                                        </td>
+                                        <td class="p-4 text-sm text-slate-600 font-medium">{{ u.date_joined|date:'d/m/Y H:i' }}</td>
+                                        <td class="p-4">
+                                            {% if u.is_active %}
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ใช้งานปกติ
+                                            </span>
+                                            {% else %}
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> ถูกระงับ
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="p-4 text-sm text-slate-700 font-medium">
+                                            {% if u.is_staff %}ผู้ดูแลระบบ{% else %}สมาชิกทั่วไป{% endif %}
+                                        </td>
+                                        <td class="p-4 text-right">
+                                            <form id="toggle-user-form-{{ u.id }}" method="post" action="{% url 'admin_toggle_user' u.id %}" class="inline-block">
+                                                {% csrf_token %}
+                                                <button type="button" onclick="confirmToggleUser({{ u.id }}, '{{ u.email|escapejs }}', {{ u.is_active|yesno:'true,false' }})"
+                                                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer {% if u.is_active %}bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200{% endif %}">
+                                                    {% if u.is_active %}<i class="fa-solid fa-ban"></i> ระงับบัญชี{% else %}<i class="fa-solid fa-circle-check"></i> เปิดใช้งาน{% endif %}
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="p-12 text-center text-slate-500 text-sm font-medium">ยังไม่มีสมาชิกในระบบ</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Users Pagination -->
+                        <div class="px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50" id="users-pagination">
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                <span id="users-page-info" class="font-medium">กำลังโหลด...</span>
+                                <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                                    <label for="users-per-page" class="text-slate-600 font-semibold">แสดง:</label>
+                                    <select id="users-per-page" onchange="changePerPage('users', this.value)"
+                                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer hover:border-slate-300 transition">
+                                        <option value="5" selected>5</option>
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                    <span class="text-slate-500">รายการ/หน้า</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1" id="users-pagination-nav"></div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ========================================== -->
+                <!-- 3. 🚨 TAB: รายการแจ้งเบาะแส (REPORTS)          -->
+                <!-- ========================================== -->
+                <section id="tab-content-reports" class="tab-pane hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        
+                        <!-- Header & Search -->
+                        <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+                            <div>
+                                <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                                    <!-- <i class="fa-solid fa-flag text-amber-500"></i> รายการแจ้งเบาะแส --> รายการแจ้งเบาะแส
+                                </h2>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-full sm:w-64">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                                    <input type="text" id="report-search-input" onkeyup="filterReportsTable()" placeholder="ค้นหาโดเมน หรือผู้แจ้ง..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reports Table -->
+                        <div class="overflow-x-auto">
+                            <table id="reports-table" class="w-full min-w-[700px] text-left text-sm">
+                                <thead class="bg-slate-100 text-slate-900 text-xs uppercase border-b border-slate-200 font-black tracking-wider">
+                                    <tr>
+                                        <th class="p-4 w-12 text-center">#</th>
+                                        <th class="p-4">โดเมน / URL</th>
+                                        <th class="p-4">ประเภท</th>
+                                        <th class="p-4">ผู้แจ้ง</th>
+                                        <th class="p-4">รายละเอียด</th>
+                                        <th class="p-4">สถานะ</th>
+                                        <th class="p-4 text-right">ดำเนินการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    {% for r in all_reports %}
+                                    <tr class="report-row hover:bg-slate-50/80 transition-colors">
+                                        <td class="p-4 text-center text-sm text-slate-600 font-mono font-bold">{{ forloop.counter }}</td>
+                                        <td class="p-4 font-mono font-bold text-blue-600 break-all report-domain">{{ r.domain }}</td>
+                                        <td class="p-4 text-sm font-semibold text-slate-800">{{ r.get_reason_display }}</td>
+                                        <td class="p-4 text-sm text-slate-600 font-medium report-user">{{ r.user.email }}</td>
+                                        <td class="p-4 text-sm text-slate-700 max-w-xs truncate">{{ r.details|default:"-" }}</td>
+                                        <td class="p-4">
+                                            {% if r.status == 'pending' %}
+                                                <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200">รอตรวจสอบ</span>
+                                            {% elif r.status == 'approved' %}
+                                                <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">อนุมัติแล้ว</span>
+                                            {% else %}
+                                                <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-200">ปฏิเสธ</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="p-4 text-right">
+                                            {% if r.status == 'pending' %}
+                                             <div class="flex items-center justify-end gap-2">
+                                                <form id="approve-report-form-{{ r.id }}" method="post" action="{% url 'admin_review_report' r.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="status" value="approved">
+                                                    <button type="button" onclick="confirmReviewReport('approve-report-form-{{ r.id }}', '{{ r.domain|escapejs }}', 'approved')"
+                                                        class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-sm transition cursor-pointer">
+                                                        อนุมัติ
+                                                    </button>
+                                                </form>
+                                                <form id="reject-report-form-{{ r.id }}" method="post" action="{% url 'admin_review_report' r.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="status" value="rejected">
+                                                    <button type="button" onclick="confirmReviewReport('reject-report-form-{{ r.id }}', '{{ r.domain|escapejs }}', 'rejected')"
+                                                        class="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold hover:bg-rose-100 transition cursor-pointer">
+                                                        ปฏิเสธ
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            {% else %}
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 shadow-2xs">
+                                                <i class="fa-solid fa-circle-check text-slate-500 text-[11px]"></i> ดำเนินการแล้ว
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="p-12 text-center text-slate-500 text-sm font-medium">ยังไม่มีรายการแจ้งเบาะแส</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Reports Pagination -->
+                        <div class="px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50" id="reports-pagination">
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                <span id="reports-page-info" class="font-medium">กำลังโหลด...</span>
+                                <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                                    <label for="reports-per-page" class="text-slate-600 font-semibold">แสดง:</label>
+                                    <select id="reports-per-page" onchange="changePerPage('reports', this.value)"
+                                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer hover:border-slate-300 transition">
+                                        <option value="5" selected>5</option>
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                    <span class="text-slate-500">รายการ/หน้า</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1" id="reports-pagination-nav"></div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ========================================== -->
+                <!-- 4. 🌐 TAB: จัดการรายการตรวจสอบ (SITES & DOMAINS)  -->
+                <!-- ========================================== -->
+                <section id="tab-content-sites" class="tab-pane hidden space-y-6">
+                    <!-- Top Info Cards -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                <!-- <i class="fa-solid fa-globe text-blue-600"></i> -->จัดการรายการตรวจสอบ
+                                <span class="sidebar-text text-sm bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">{{ total_domains }}</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <!-- Filters & Search Toolbar -->
+                        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
+                            <!-- Left: Filter Dropdown List -->
+                            <div class="flex items-center gap-2">
+                                <label for="domain-status-filter" class="text-xs font-bold text-slate-600 flex items-center gap-1.5 shrink-0">
+                                    <i class="fa-solid fa-filter text-blue-600"></i> สถานะ:
+                                </label>
+                                <select id="domain-status-filter" onchange="filterDomainsTable()"
+                                    class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer hover:border-slate-300 transition">
+                                    <option value="all"> ทั้งหมด </option>
+                                    <option value="danger"> อันตราย</option>
+                                    <option value="mostly_danger"> มีแนวโน้มอันตราย</option>
+                                    <option value="warning"> ควรระวัง</option>
+                                    <option value="mostly_safe"> ค่อนข้างปลอดภัย</option>
+                                    <option value="safe"> ปลอดภัย</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Right: Search box -->
+                            <div class="relative w-full sm:w-72">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                                <input type="text" id="domain-search-input" onkeyup="filterDomainsTable()" placeholder="ค้นหาชื่อโดเมน/เว็บไซต์..."
+                                    class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table id="domains-table" class="w-full min-w-[840px] text-left text-sm">
+                                <thead class="bg-slate-100 text-slate-900 text-xs uppercase border-b border-slate-200 font-black tracking-wider">
+                                    <tr>
+                                        <th class="p-4 w-12 text-center">#</th>
+                                        <th class="p-4">ชื่อโดเมน และ เว็บไซต์</th>
+                                        <th class="p-4 text-center">มีคนเช็ค (คน)</th>
+                                        <th class="p-4 text-center">โดนตรวจทั้งหมด (ครั้ง)</th>
+                                        <th class="p-4 text-center">มีคนรายงาน</th>
+                                        <th class="p-4 text-center">ผลการตรวจสอบ</th>
+                                        <th class="p-4 text-center">ตรวจล่าสุด</th>
+                                        <th class="p-4 text-right">การจัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    {% for d in domain_statistics %}
+                                    <tr class="domain-row hover:bg-blue-50/40 transition-colors"
+                                        data-status="{{ d.last_status|default:'safe' }}"
+                                        data-reported="{% if d.report_count > 0 %}yes{% else %}no{% endif %}">
+                                        <td class="p-4 text-center text-sm text-slate-600 font-mono font-bold">{{ forloop.counter }}</td>
+                                        <td class="p-4">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold shrink-0 border border-blue-100">
+                                                    <i class="fa-solid fa-globe"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="font-mono font-bold text-slate-900 domain-name text-sm block">{{ d.domain }}</span>
+                                                    {% if d.last_score %}
+                                                    <span class="text-xs text-slate-600 font-semibold">คะแนนความเสี่ยงล่าสุด: {{ d.last_score }}/100</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold font-mono text-xs">
+                                                <i class="fa-solid fa-user-check text-[11px] text-slate-500"></i> {{ d.unique_scanner_count }} คน
+                                            </span>
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-extrabold font-mono text-xs border border-blue-100">
+                                                <i class="fa-solid fa-magnifying-glass text-[11px] text-blue-500"></i> {{ d.scan_count }} ครั้ง
+                                            </span>
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            {% if d.report_count > 0 %}
+                                            <div class="inline-flex flex-col items-center">
+                                                <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200">
+                                                    {{ d.report_count }} คน
+                                                </span>
+                                                {% if d.approved_report_count > 0 %}
+                                                <!-- <span class="text-[10px] text-rose-600 font-bold mt-0.5">อนุมัติแล้ว {{ d.approved_report_count }} รายการ</span> -->
+                                                {% endif %}
+                                            </div>
+                                            {% else %}
+                                            <span class="text-xs text-slate-500 font-semibold">ไม่มีรายงาน</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            {% if d.last_status == 'danger' %}
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                                                <i class="fa-solid fa-triangle-exclamation text-[11px]"></i> อันตราย
+                                            </span>
+                                            {% elif d.last_status == 'mostly_danger' %}
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                                                <i class="fa-solid fa-triangle-exclamation text-[11px]"></i> มีแนวโน้มอันตราย
+                                            </span>
+                                            {% elif d.last_status == 'warning' %}
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                <i class="fa-solid fa-circle-exclamation text-[11px]"></i> ควรระวัง
+                                            </span>
+                                            {% elif d.last_status == 'mostly_safe' %}
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                                                <i class="fa-solid fa-shield-check text-[11px]"></i> ค่อนข้างปลอดภัย
+                                            </span>
+                                            {% else %}
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                <i class="fa-solid fa-shield-halved text-[11px]"></i> ปลอดภัย
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="p-4 text-center text-sm text-slate-600 font-medium font-mono">
+                                            {{ d.updated_at|date:"d/m/Y H:i"|default:"-" }}
+                                        </td>
+                                        <td class="p-4 text-right">
+                                            <form method="POST" action="{% url 'scan_view' %}" class="inline-block" target="_blank">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="url" value="http://{{ d.domain }}">
+                                                <button type="submit" title="สแกนตรวจสอบโดเมนนี้อีกครั้ง"
+                                                    class="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                                    <i class="fa-solid fa-arrows-rotate text-[10px]"></i> ตรวจซ้ำ
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="p-12 text-center text-slate-500 text-sm font-medium">ยังไม่มีข้อมูลโดเมนในระบบ</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Domains Pagination -->
+                        <div class="px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50" id="domains-pagination">
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                <span id="domains-page-info" class="font-medium">กำลังโหลด...</span>
+                                <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                                    <label for="domains-per-page" class="text-slate-600 font-semibold">แสดง:</label>
+                                    <select id="domains-per-page" onchange="changePerPage('domains', this.value)"
+                                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer hover:border-slate-300 transition">
+                                        <option value="5" selected>5</option>
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                    <span class="text-slate-500">รายการ/หน้า</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1" id="domains-pagination-nav"></div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ========================================== -->
+                <!-- 5. 📚 TAB: คลังความรู้ (KNOWLEDGE)         -->
+                <!-- ========================================== -->
+                <section id="tab-content-knowledge" class="tab-pane hidden space-y-6">
+
+                    <!-- Header + Add Button -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                            <h2 class="text-xl font-extrabold text-slate-900">คลังความรู้</h2>
+                            <span class="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold border border-slate-200">ทั้งหมด {{ total_articles }}</span>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> เผยแพร่แล้ว {{ published_articles_count }}
+                            </span>
+                            <span class="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-bold border border-amber-200 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> ซ่อน / ฉบับร่าง {{ draft_articles_count }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <a href="{% url 'knowledge' %}" target="_blank"
+                               class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition flex items-center gap-2 shadow-xs">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> ดูหน้าจริง
+                            </a>
+                            <button type="button" onclick="openArticleModal()"
+                               class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-md shadow-blue-600/20 cursor-pointer">
+                                <i class="fa-solid fa-plus"></i> เพิ่มบทความ
+                            </button>
+                        </div>
+                    </div>
+
+
+                    <!-- Main Container Card with background frame (Matching Users, Reports, and Sites tabs) -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        
+                        <!-- Toolbar Header: Filter Dropdowns & Search -->
+                        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/60">
+                            <!-- Left: Filter dropdowns (Category & Status) -->
+                            <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                                <!-- Category filter -->
+                                <div class="flex items-center gap-2">
+                                    <label for="category-filter-select" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                                        <i class="fa-solid fa-layer-group text-blue-600"></i> หมวดหมู่:
+                                    </label>
+                                    <select id="category-filter-select" onchange="filterByCategory(this.value)"
+                                        class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer hover:border-slate-300 transition">
+                                        <option value="all">ทั้งหมด</option>
+                                        <option value="Phishing">Phishing</option>
+                                        <option value="Security">Security</option>
+                                        <option value="Scams">Scams</option>
+                                        <option value="Malware">Malware</option>
+                                        <option value="Privacy">Privacy</option>
+                                    </select>
+                                </div>
+
+                                <!-- Status filter -->
+                                <div class="flex items-center gap-2">
+                                    <label for="article-status-filter-select" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                                        <i class="fa-solid fa-toggle-on text-emerald-600"></i> สถานะ:
+                                    </label>
+                                    <select id="article-status-filter-select" onchange="filterByArticleStatus(this.value)"
+                                        class="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer hover:border-slate-300 transition">
+                                        <option value="all">ทั้งหมด </option>
+                                        <option value="published">เผยแพร่แล้ว </option>
+                                        <option value="draft">ซ่อน / ฉบับร่าง </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Right: Search input -->
+                            <div class="relative w-full md:w-64">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                                <input type="text" id="article-search-input" onkeyup="filterArticlesTable()" placeholder="ค้นหาชื่อหรือคำอธิบาย..." class="w-full pl-9 pr-4 py-1.5 sm:py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- Articles Grid Body -->
+                        <div class="p-5 sm:p-6 bg-slate-50/30">
+                            <div id="articles-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                                {% for art in db_articles %}
+                                <article class="article-card rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col"
+                                         data-category="{{ art.category }}"
+                                         data-status="{{ art.status }}">
+                                    <!-- Cover Image -->
+                                    <div class="h-44 bg-slate-100 overflow-hidden relative shrink-0">
+                                        {% if art.image %}
+                                        <img src="{{ art.image }}" alt="{{ art.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                        {% else %}
+                                        <div class="w-full h-full flex items-center justify-center text-slate-300">
+                                            <i class="fa-solid fa-image text-4xl"></i>
+                                        </div>
+                                        {% endif %}
+                                        <!-- Category badge -->
+                                        <span class="absolute top-3 left-3 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full
+                                            {% if art.category == 'Phishing' %}bg-red-500 text-white
+                                            {% elif art.category == 'Security' %}bg-blue-600 text-white
+                                            {% elif art.category == 'Scams' %}bg-orange-500 text-white
+                                            {% elif art.category == 'Malware' %}bg-purple-600 text-white
+                                            {% else %}bg-teal-500 text-white{% endif %}
+                                            shadow">{{ art.category }}</span>
+                                        <!-- Status badge -->
+                                        <span class="absolute top-3 right-3 px-2.5 py-0.5 text-[10px] font-bold rounded-full
+                                            {% if art.status == 'published' %}bg-emerald-500 text-white{% else %}bg-amber-400 text-slate-900{% endif %}
+                                            shadow">
+                                            {% if art.status == 'published' %}เผยแพร่แล้ว{% else %}ฉบับร่าง{% endif %}
+                                        </span>
+                                    </div>
+
+                                    <!-- Card Body -->
+                                    <div class="p-5 flex-1 flex flex-col">
+                                        <h3 class="font-bold text-slate-900 text-sm line-clamp-2 mb-1 group-hover:text-blue-600 transition-colors">{{ art.title }}</h3>
+                                        <p class="text-sm text-slate-600 line-clamp-2 flex-1">{{ art.desc }}</p>
+                                        <div class="flex items-center gap-2 mt-3 text-sm text-slate-600">
+                                            <i class="fa-regular fa-clock"></i> {{ art.read_time }}
+                                            <span class="mx-1">·</span>
+                                            <i class="fa-solid fa-user-pen"></i> {{ art.author }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Card Actions -->
+                                    <div class="px-5 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
+                                        <a href="{% url 'knowledge_detail' art.id %}" target="_blank"
+                                           class="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                            <i class="fa-solid fa-eye text-[10px]"></i> อ่านบทความ
+                                        </a>
+                                        <div class="flex items-center gap-2">
+                                            <!-- Toggle Published/Draft -->
+                                            <form method="post" action="{% url 'article_toggle_status' art.id %}" class="inline">
+                                                {% csrf_token %}
+                                                <button type="submit" title="{% if art.status == 'published' %}ซ่อน{% else %}เผยแพร่{% endif %}"
+                                                    class="p-1.5 rounded-lg text-xs {% if art.status == 'published' %}bg-amber-100 text-amber-700 hover:bg-amber-200{% else %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200{% endif %} transition">
+                                                    <i class="fa-solid {% if art.status == 'published' %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                                                </button>
+                                            </form>
+                                            <!-- Edit -->
+                                            <button type="button"
+                                                onclick="openEditModal({{ art.id }})"
+                                                class="p-1.5 rounded-lg text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                                                title="แก้ไขบทความ" aria-label="แก้ไขบทความ">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+
+                                        </div>
+                                    </div>
+                                </article>
+                                {% empty %}
+                                <div class="col-span-full py-20 flex flex-col items-center justify-center text-slate-400 gap-4">
+                                    <i class="fa-solid fa-book-open text-5xl text-slate-200"></i>
+                                    <p class="text-sm font-medium">ยังไม่มีบทความในฐานข้อมูล</p>
+                                    <button type="button" onclick="openArticleModal()"
+                                        class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-plus text-xs"></i> เพิ่มบทความแรก
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Articles Pagination Footer (seamless border-t) -->
+                        <div class="px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50" id="articles-pagination">
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                                <span id="articles-page-info" class="font-semibold text-slate-800">กำลังโหลด...</span>
+                                <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                                    <label for="articles-per-page" class="text-slate-700 font-semibold">แสดง:</label>
+                                    <select id="articles-per-page" onchange="changePerPage('articles', this.value)"
+                                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer hover:border-slate-300 transition">
+                                        <option value="5" selected>5</option>
+                                        <option value="10">10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                    <span class="text-slate-600">รายการ/หน้า</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1" id="articles-pagination-nav"></div>
+                        </div>
+
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Hidden JSON data store for existing articles -->
+<script id="articles-json-data" type="application/json">{{ articles_json_data|safe }}</script>
+
+<!-- ============================================================ -->
+<!-- ⚠️ CONFIRMATION MODAL: โมดอลยืนยันการดำเนินการ (Custom Confirm)   -->
+<!-- ============================================================ -->
+<div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-200">
+    <div id="confirm-modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 transform transition-all duration-200 scale-95 opacity-0">
+        <div class="flex items-start gap-4">
+            <div id="confirm-modal-icon-bg" class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600 border border-amber-200 shadow-xs">
+                <i id="confirm-modal-icon" class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 id="confirm-modal-title" class="text-base font-black text-slate-900 leading-tight">ยืนยันการดำเนินการ</h3>
+                <div id="confirm-modal-desc" class="mt-2 text-sm text-slate-700 font-medium leading-relaxed">คุณต้องการดำเนินการนี้หรือไม่?</div>
+            </div>
+        </div>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+            <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">
+                ยกเลิก
+            </button>
+            <button type="button" id="confirm-modal-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-xs transition cursor-pointer">
+                ยืนยัน
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 📝 MODAL: ตัวสร้างและแก้ไขบทความ (Visual Block Editor)         -->
+<!-- ============================================================ -->
+<div id="article-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col my-auto border border-slate-200">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/90 rounded-t-3xl shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-600/20">
+                    <i class="fa-solid fa-pen-nib text-base"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" class="text-lg font-black text-slate-900">เพิ่มบทความใหม่</h3>
+                    <p class="text-xs text-slate-500">สร้างและจัดรูปแบบบทความความรู้ด้านความปลอดภัยไซเบอร์แบบเห็นภาพจริง</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeArticleModal()"
+                class="w-9 h-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal Form Body -->
+        <form id="article-form" method="post" action="{% url 'article_create' %}" class="flex-1 overflow-y-auto p-6 sm:p-8 space-y-7">
+            {% csrf_token %}
+            <input type="hidden" name="content" id="f-content" value="{}">
+
+            <!-- SECTION 1: ข้อมูลพื้นฐานบทความ (General Info) -->
+            <div class="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+                <div class="flex items-center gap-2 text-sm font-extrabold text-slate-800 pb-2 border-b border-slate-200">
+                    <i class="fa-solid fa-circle-info text-blue-600"></i> ข้อมูลหลักของบทความ
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">ชื่อบทความ <span class="text-rose-500">*</span></label>
+                    <input type="text" name="title" id="f-title" required placeholder="เช่น วิธีสังเกตลิงก์ปลอม (Phishing) แบบมือโปร"
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Category & Status & Read Time -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">หมวดหมู่</label>
+                        <select name="category" id="f-category"
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Phishing">Phishing (ลิงก์ปลอม)</option>
+                            <option value="Security">Security (ความปลอดภัย)</option>
+                            <option value="Scams">Scams (มิจฉาชีพ/หลอกลวง)</option>
+                            <option value="Malware">Malware (มัลแวร์/ไวรัส)</option>
+                            <option value="Privacy">Privacy (ความเป็นส่วนตัว)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">สถานะการแสดงผล</label>
+                        <select name="status" id="f-status"
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="published">🟢 เผยแพร่ทันที</option>
+                            <option value="draft">🟡 บันทึกเป็นร่าง</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                            <i class="fa-regular fa-clock text-blue-600"></i> เวลาที่ใช้อ่าน
+                        </label>
+                        <div class="flex items-center gap-1.5">
+                            <input type="number" id="f-read-time-num" min="1" value="4" oninput="onReadTimeChange()"
+                                class="w-20 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-center text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select id="f-read-time-unit" onchange="onReadTimeChange()"
+                                class="flex-1 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="นาที">นาที</option>
+                                <option value="ชม.">ชม.</option>
+                            </select>
+                        </div>
+                        <input type="hidden" name="read_time" id="f-read-time" value="4 นาที">
+                    </div>
+                </div>
+
+                <!-- Author & Role & Date -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">ชื่อผู้เขียน</label>
+                        <input type="text" name="author" id="f-author" value="PhishWise Team" placeholder="PhishWise Team"
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">ตำแหน่ง/บทบาท</label>
+                        <input type="text" name="author_role" id="f-author-role" value="Cybersecurity Specialist" placeholder="Cybersecurity Specialist"
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-regular fa-calendar-days text-blue-600"></i> วันที่เผยแพร่
+                        </label>
+                        <input type="date" id="f-date-picker" onchange="onDatePickerChange(this.value)"
+                            class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <input type="hidden" name="date" id="f-date">
+                        <span id="f-date-display" class="block text-[11px] text-blue-600 font-bold mt-1"></span>
+                    </div>
+                </div>
+
+                <!-- Cover Image (Upload from PC or enter URL) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-regular fa-image text-blue-600"></i> รูปภาพหน้าปกบทความ (Cover Image)
+                        </label>
+                        <!-- Tab Switcher -->
+                        <div class="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-lg text-[11px] font-bold text-slate-600">
+                            <button type="button" onclick="switchCoverMode('upload')" id="btn-cover-mode-upload"
+                                class="px-2.5 py-1 rounded-md bg-white text-blue-600 shadow-sm transition">
+                                <i class="fa-solid fa-cloud-arrow-up mr-1"></i> อัปโหลดจากเครื่อง
+                            </button>
+                            <button type="button" onclick="switchCoverMode('url')" id="btn-cover-mode-url"
+                                class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-700 transition">
+                                <i class="fa-solid fa-link mr-1"></i> ใส่ URL
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mode 1: Local File Upload Box -->
+                    <div id="cover-upload-zone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-2xl p-5 text-center transition cursor-pointer"
+                         onclick="document.getElementById('cover-file-input').click()">
+                        <input type="file" id="cover-file-input" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden"
+                            onchange="handleCoverFileUpload(this.files[0])">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-blue-600">คลิกเพื่อเลือกไฟล์รูปภาพ</span>
+                                <span class="text-xs text-slate-500"> จากเครื่องคอมพิวเตอร์ของคุณ</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">รองรับไฟล์ JPG, PNG, WEBP, GIF (สูงสุด 10MB)</span>
+                        </div>
+                        <div id="cover-upload-spinner" class="hidden mt-2 text-xs font-bold text-blue-600 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> กำลังอัปโหลดรูปภาพ...
+                        </div>
+                    </div>
+
+                    <!-- Mode 2: Direct URL Input -->
+                    <div id="cover-url-zone" class="hidden">
+                        <input type="text" id="cover-url-input" placeholder="https://images.unsplash.com/... หรือ /media/articles/..."
+                            oninput="setCoverImage(this.value)"
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Hidden input to store final cover URL -->
+                    <input type="hidden" name="image" id="f-image">
+
+                    <!-- Live Image Preview Box -->
+                    <div id="cover-preview-box" class="hidden mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative shadow-sm">
+                        <div class="h-48 w-full bg-slate-900/5 flex items-center justify-center overflow-hidden">
+                            <img id="cover-preview-img" src="" alt="Cover Preview" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-3 bg-white border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-2 min-w-0 text-slate-700">
+                                <i class="fa-solid fa-circle-check text-emerald-500 text-sm shrink-0"></i>
+                                <div class="min-w-0">
+                                    <p id="cover-preview-filename" class="font-bold truncate text-slate-800">รูปภาพหน้าปก</p>
+                                    <p id="cover-preview-sub" class="text-[11px] text-slate-500 truncate">พร้อมใช้งานสำหรับหน้าปกบทความ</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="document.getElementById('cover-file-input').click()"
+                                    class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-arrow-rotate-right text-[10px]"></i> เปลี่ยนรูป
+                                </button>
+                                <button type="button" onclick="clearCoverImage()" title="ลบรูปนี้"
+                                    class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i> ลบรูป
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desc (Short description for card) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">คำอธิบายย่อ (แสดงบนการ์ดในหน้ารวม) <span class="text-rose-500">*</span></label>
+                    <textarea name="desc" id="f-desc" rows="2" required placeholder="สรุปเนื้อหา 1-2 ประโยคสำหรับแสดงบนการ์ด..."
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+
+                <!-- Summary (Lead paragraph on article page) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">บทนำ / บทสรุปเปิดเรื่อง (ย่อหน้าแรกที่มีกรอบเน้นสีน้ำเงิน)</label>
+                    <textarea name="summary" id="f-summary" rows="2" placeholder="ย่อหน้าเปิดบทความเพื่อดึงดูดผู้อ่าน..."
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"></textarea>
+                </div>
+            </div>
+
+            <!-- SECTION 2: เนื้อหาบทความแบบสำเร็จรูป (Visual Sections Builder) -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                    <div>
+                        <h4 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-blue-600"></i> เนื้อหาบทความ
+                        </h4>
+                    </div>
+                    <!-- <button type="button" onclick="addSectionBlock()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm shadow-blue-600/30">
+                        <i class="fa-solid fa-plus"></i> เพิ่มหัวข้อย่อย
+                    </button> -->
+                </div>
+
+                <!-- Hidden field for backward compatibility -->
+                <input type="hidden" name="content_markdown" id="f-content-markdown" value="">
+
+                <!-- Container for all dynamic sections -->
+                <div id="sections-container" class="space-y-5">
+                    <!-- Dynamic Section Cards will be inserted here by JS -->
+                </div>
+
+                <div class="pt-2 text-center">
+                    <button type="button" onclick="addSectionBlock()"
+                        class="w-full py-3 border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 rounded-2xl text-xs font-bold text-slate-600 hover:text-blue-600 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-base text-blue-600"></i> คลิกเพื่อเพิ่มหัวข้อย่อยใหม่ (Add Section)
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 3: สรุปข้อควรรู้ท้ายบทความ (Key Takeaways) -->
+            <div class="bg-slate-900 rounded-2xl p-5 text-white space-y-4 shadow-md">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div>
+                        <div class="flex items-center gap-2 text-amber-400 font-extrabold text-sm">
+                            <span>📌</span> สรุปข้อควรรู้เพื่อความปลอดภัย
+                        </div>
+                    </div>
+                    <button type="button" onclick="addTakeawayRow()"
+                        class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
+                        <i class="fa-solid fa-plus"></i> เพิ่มข้อสรุป
+                    </button>
+                </div>
+
+                <!-- Takeaways list container -->
+                <div id="takeaways-container" class="space-y-2.5">
+                    <!-- Dynamic Takeaway rows will be inserted here by JS -->
+                </div>
+            </div>
+
+            <!-- Modal Footer Controls -->
+            <div class="sticky bottom-0 bg-white/95 backdrop-blur pt-4 pb-2 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                <button type="button" onclick="closeArticleModal()"
+                    class="px-6 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">
+                    ยกเลิก
+                </button>
+                <button type="submit"
+                    class="px-7 py-2.5 text-xs font-extrabold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/30 flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึกบทความ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ⚙️ SCRIPT: TAB SWITCHING, CHARTS, FILTERS    -->
+<!-- ========================================== -->
 <script>
-new Chart(document.getElementById('adminChart'), {
-    type: 'bar',
-    data: {
-        labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
-        datasets: [{ label: 'ภัยคุกคาม', data: [3500, 3800, 4000, 3900, 4500, 0], backgroundColor: '#ef4444' }]
-    },
-    options: { responsive: true, plugins: { legend: { display: false } } }
-});
+document.addEventListener("DOMContentLoaded", function () {
+    // 1. Sidebar Toggle
+    const sidebar = document.getElementById("admin-sidebar");
+    const toggleBtn = document.getElementById("sidebar-toggle-btn");
+    const sidebarTexts = document.querySelectorAll(".sidebar-text");
 
-const adminMap = L.map('adminMap', { zoomControl: false }).setView([13.7563, 100.5018], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(adminMap);
-L.marker([13.7563, 100.5018]).addTo(adminMap).bindPopup('Bangkok');
-L.marker([37.0902, -95.7129]).addTo(adminMap).bindPopup('USA');
+    let isCollapsed = false;
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener("click", function () {
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                sidebar.classList.remove("w-64");
+                sidebar.classList.add("w-20");
+                sidebarTexts.forEach(el => el.classList.add("hidden"));
+            } else {
+                sidebar.classList.remove("w-20");
+                sidebar.classList.add("w-64");
+                sidebarTexts.forEach(el => el.classList.remove("hidden"));
+            }
+        });
+    }
+
+    // 2. Tab Navigation
+    const tabButtons = document.querySelectorAll(".nav-tab-btn");
+    const tabPanes = document.querySelectorAll(".tab-pane");
+    const tabTitle = document.getElementById("active-tab-title");
+
+    const tabTitlesMap = {
+        "dashboard": "ภาพรวมระบบ",
+        "users": "จัดการผู้ใช้",
+        "reports": "รายการแจ้งเบาะแส",
+        "sites": "จัดการรายการตรวจสอบ",
+        "knowledge": "คลังความรู้"
+    };
+
+    window.switchAdminTab = function(tabName) {
+        tabButtons.forEach(btn => {
+            const icon = btn.querySelector("i");
+            if (btn.getAttribute("data-tab") === tabName) {
+                btn.classList.add("active", "bg-blue-50", "text-blue-600", "font-bold", "border-blue-200", "shadow-sm");
+                btn.classList.remove("text-slate-600", "hover:bg-slate-50", "hover:text-slate-900", "border-transparent", "font-semibold");
+                if (icon) {
+                    icon.classList.remove("text-slate-500");
+                    icon.classList.add("text-blue-600");
+                }
+            } else {
+                btn.classList.remove("active", "bg-blue-50", "text-blue-600", "font-bold", "border-blue-200", "shadow-sm");
+                btn.classList.add("text-slate-600", "hover:bg-slate-50", "hover:text-slate-900", "border-transparent", "font-semibold");
+                if (icon) {
+                    icon.classList.remove("text-blue-600");
+                    icon.classList.add("text-slate-500");
+                }
+            }
+        });
+
+        tabPanes.forEach(pane => {
+            if (pane.id === "tab-content-" + tabName) {
+                pane.classList.remove("hidden");
+            } else {
+                pane.classList.add("hidden");
+            }
+        });
+
+        if (tabTitle && tabTitlesMap[tabName]) {
+            tabTitle.textContent = tabTitlesMap[tabName];
+        }
+
+        const tabToPaginator = {
+            "users": "users",
+            "reports": "reports",
+            "sites": "domains",
+            "knowledge": "articles"
+        };
+        if (tabToPaginator[tabName] && typeof window.renderPagination === "function") {
+            window.renderPagination(tabToPaginator[tabName]);
+        }
+
+        // Persist active tab in URL hash
+        history.replaceState(null, null, '#' + tabName);
+
+        // Auto-close mobile sidebar when a tab is selected
+        if (typeof window.closeMobileSidebar === "function") {
+            window.closeMobileSidebar();
+        }
+    };
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener("click", function () {
+            const targetTab = this.getAttribute("data-tab");
+            switchAdminTab(targetTab);
+        });
+    });
+
+    // Auto-switch tab from URL hash on page load
+    const initialHash = window.location.hash.replace('#', '');
+    const validTabs = ['dashboard', 'users', 'reports', 'sites', 'knowledge'];
+    if (initialHash && validTabs.includes(initialHash)) {
+        switchAdminTab(initialHash);
+    }
+
+    // Mobile Sidebar Toggle Functions
+    window.toggleMobileSidebar = function() {
+        const mobileSidebar = document.getElementById('admin-sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        if (!mobileSidebar || !overlay) return;
+        const isHidden = mobileSidebar.classList.contains('hidden');
+        if (isHidden) {
+            mobileSidebar.classList.remove('hidden');
+            mobileSidebar.classList.add('flex');
+            overlay.classList.remove('hidden');
+        } else {
+            mobileSidebar.classList.add('hidden');
+            mobileSidebar.classList.remove('flex');
+            overlay.classList.add('hidden');
+        }
+    };
+    window.closeMobileSidebar = function() {
+        const mobileSidebar = document.getElementById('admin-sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        if (!mobileSidebar || !overlay) return;
+        mobileSidebar.classList.add('hidden');
+        mobileSidebar.classList.remove('flex');
+        overlay.classList.add('hidden');
+    };
+
+    // 3. Chart.js: Risk Distribution Doughnut Chart
+    const ctx = document.getElementById("riskDistributionChart");
+    if (ctx) {
+        Chart.defaults.font.family = "'Sarabun', 'Inter', sans-serif";
+        new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: ["ปลอดภัย", "ค่อนข้างปลอดภัย", "ควรระวัง", "มีแนวโน้มอันตราย", "อันตราย"],
+                datasets: [{
+                    data: [
+                        {{ safe_count|default:0 }},
+                        {{ mostly_safe_count|default:0 }},
+                        {{ warning_count|default:0 }},
+                        {{ mostly_danger_count|default:0 }},
+                        {{ danger_count|default:0 }}
+                    ],
+                    backgroundColor: [
+                        "#10b981", // Emerald
+                        "#14b8a6", // Teal
+                        "#f59e0b", // Amber
+                        "#f97316", // Orange
+                        "#ef4444"  // Rose/Red
+                    ],
+                    borderWidth: 2,
+                    borderColor: "#ffffff"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                cutout: "68%"
+            }
+        });
+    }
+
+    // 4. Live Filtering & Client-Side Pagination for Tables and Grid
+    const tablePaginators = {
+        users: {
+            currentPage: 1,
+            perPage: 5,
+            rowSelector: ".user-row",
+            infoId: "users-page-info",
+            navId: "users-pagination-nav",
+            perPageId: "users-per-page",
+            filterFn: function(row) {
+                const query = (document.getElementById("user-search-input")?.value || "").toLowerCase().trim();
+                if (!query) return true;
+                const name = (row.querySelector(".user-name")?.textContent || "").toLowerCase();
+                const email = (row.querySelector(".user-email")?.textContent || "").toLowerCase();
+                return name.includes(query) || email.includes(query);
+            }
+        },
+        reports: {
+            currentPage: 1,
+            perPage: 5,
+            rowSelector: ".report-row",
+            infoId: "reports-page-info",
+            navId: "reports-pagination-nav",
+            perPageId: "reports-per-page",
+            filterFn: function(row) {
+                const query = (document.getElementById("report-search-input")?.value || "").toLowerCase().trim();
+                if (!query) return true;
+                const domain = (row.querySelector(".report-domain")?.textContent || "").toLowerCase();
+                const user = (row.querySelector(".report-user")?.textContent || "").toLowerCase();
+                return domain.includes(query) || user.includes(query);
+            }
+        },
+        domains: {
+            currentPage: 1,
+            perPage: 5,
+            rowSelector: ".domain-row",
+            infoId: "domains-page-info",
+            navId: "domains-pagination-nav",
+            perPageId: "domains-per-page",
+            filterFn: function(row) {
+                const query = (document.getElementById("domain-search-input")?.value || "").toLowerCase().trim();
+                const statusFilter = document.getElementById("domain-status-filter")?.value || "all";
+                const name = (row.querySelector(".domain-name")?.textContent || "").toLowerCase();
+                const rowStatus = row.getAttribute("data-status") || "safe";
+                
+                const matchesQuery = !query || name.includes(query);
+                let matchesStatus = true;
+                if (statusFilter === "all") {
+                    matchesStatus = true;
+                } else if (statusFilter === "reported") {
+                    matchesStatus = (row.getAttribute("data-reported") === "yes");
+                } else {
+                    matchesStatus = (rowStatus === statusFilter);
+                }
+                return matchesQuery && matchesStatus;
+            }
+        },
+        articles: {
+            currentPage: 1,
+            perPage: 5,
+            rowSelector: ".article-card",
+            infoId: "articles-page-info",
+            navId: "articles-pagination-nav",
+            perPageId: "articles-per-page",
+            currentCategory: "all",
+            currentStatus: "all",
+            filterFn: function(card) {
+                const query = (document.getElementById("article-search-input")?.value || "").toLowerCase().trim();
+                const cat = tablePaginators.articles.currentCategory || "all";
+                const stat = tablePaginators.articles.currentStatus || "all";
+
+                const title = (card.querySelector("h3")?.textContent || "").toLowerCase();
+                const desc = (card.querySelector("p")?.textContent || "").toLowerCase();
+                const cardCat = card.getAttribute("data-category") || "";
+                const cardStat = card.getAttribute("data-status") || "";
+
+                const matchesQuery = !query || title.includes(query) || desc.includes(query);
+                const matchesCat = (cat === "all" || cardCat === cat);
+                const matchesStat = (stat === "all" || cardStat === stat);
+
+                return matchesQuery && matchesCat && matchesStat;
+            }
+        },
+        scans: {
+            currentPage: 1,
+            perPage: 5,
+            rowSelector: ".recent-scan-item",
+            infoId: "scans-page-info",
+            navId: "scans-pagination-nav",
+            perPageId: "scans-per-page",
+            filterFn: function() { return true; }
+        }
+    };
+
+    window.renderPagination = function(key) {
+        const config = tablePaginators[key];
+        if (!config) return;
+
+        const allItems = Array.from(document.querySelectorAll(config.rowSelector));
+        if (allItems.length === 0) {
+            const infoEl = document.getElementById(config.infoId);
+            if (infoEl) infoEl.textContent = "ยังไม่มีข้อมูลในระบบ";
+            const navEl = document.getElementById(config.navId);
+            if (navEl) navEl.innerHTML = "";
+            return;
+        }
+
+        const visibleItems = allItems.filter(config.filterFn);
+        const totalItems = visibleItems.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / config.perPage));
+
+        if (config.currentPage > totalPages) config.currentPage = totalPages;
+        if (config.currentPage < 1) config.currentPage = 1;
+
+        const startIndex = (config.currentPage - 1) * config.perPage;
+        const endIndex = startIndex + config.perPage;
+
+        // Hide all items first, then show only items on current page
+        allItems.forEach(el => el.style.display = "none");
+        visibleItems.slice(startIndex, endIndex).forEach(el => el.style.display = "");
+
+        // Update info text
+        const infoEl = document.getElementById(config.infoId);
+        if (infoEl) {
+            if (totalItems === 0) {
+                infoEl.textContent = "ไม่พบรายการที่ค้นหา (0 รายการ)";
+            } else {
+                const displayStart = startIndex + 1;
+                const displayEnd = Math.min(endIndex, totalItems);
+                infoEl.textContent = `แสดง ${displayStart} - ${displayEnd} จากทั้งหมด ${totalItems} รายการ`;
+            }
+        }
+
+        // Render pagination controls
+        const navEl = document.getElementById(config.navId);
+        if (!navEl) return;
+
+        if (totalPages <= 1) {
+            navEl.innerHTML = "";
+            return;
+        }
+
+        let navHtml = "";
+        const prevDisabled = config.currentPage <= 1;
+        navHtml += `
+            <button type="button" onclick="changeAdminPage('${key}', ${config.currentPage - 1})"
+                class="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition shadow-sm flex items-center gap-1 ${prevDisabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}">
+                <i class="fa-solid fa-chevron-left text-[10px]"></i> ก่อนหน้า
+            </button>
+        `;
+
+        const pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (config.currentPage > 3) pages.push("...");
+            const start = Math.max(2, config.currentPage - 1);
+            const end = Math.min(totalPages - 1, config.currentPage + 1);
+            for (let i = start; i <= end; i++) {
+                if (!pages.includes(i)) pages.push(i);
+            }
+            if (config.currentPage < totalPages - 2) pages.push("...");
+            if (!pages.includes(totalPages)) pages.push(totalPages);
+        }
+
+        pages.forEach(p => {
+            if (p === "...") {
+                navHtml += `<span class="w-6 text-center text-slate-400 text-xs font-bold">...</span>`;
+            } else if (p === config.currentPage) {
+                navHtml += `
+                    <button type="button" class="w-7 h-7 flex items-center justify-center text-xs font-black rounded-lg bg-blue-600 text-white shadow-sm">
+                        ${p}
+                    </button>
+                `;
+            } else {
+                navHtml += `
+                    <button type="button" onclick="changeAdminPage('${key}', ${p})"
+                        class="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition shadow-sm">
+                        ${p}
+                    </button>
+                `;
+            }
+        });
+
+        const nextDisabled = config.currentPage >= totalPages;
+        navHtml += `
+            <button type="button" onclick="changeAdminPage('${key}', ${config.currentPage + 1})"
+                class="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition shadow-sm flex items-center gap-1 ${nextDisabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}">
+                ถัดไป <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+        `;
+
+        navEl.innerHTML = navHtml;
+    };
+
+    window.changeAdminPage = function(key, page) {
+        if (!tablePaginators[key]) return;
+        tablePaginators[key].currentPage = page;
+        renderPagination(key);
+    };
+
+    window.changePerPage = function(key, value) {
+        if (!tablePaginators[key]) return;
+        tablePaginators[key].perPage = parseInt(value, 10) || 5;
+        tablePaginators[key].currentPage = 1;
+        renderPagination(key);
+    };
+
+    window.filterUsersTable = function() {
+        tablePaginators.users.currentPage = 1;
+        renderPagination("users");
+    };
+
+    window.filterReportsTable = function() {
+        tablePaginators.reports.currentPage = 1;
+        renderPagination("reports");
+    };
+
+    window.filterDomainsTable = function() {
+        tablePaginators.domains.currentPage = 1;
+        renderPagination("domains");
+    };
+
+    window.filterByCategory = function(cat) {
+        const select = document.getElementById("category-filter-select");
+        if (select && select.value !== cat) {
+            select.value = cat;
+        }
+        tablePaginators.articles.currentCategory = cat;
+        tablePaginators.articles.currentPage = 1;
+        renderPagination("articles");
+    };
+
+    window.filterByArticleStatus = function(stat) {
+        const select = document.getElementById("article-status-filter-select");
+        if (select && select.value !== stat) {
+            select.value = stat;
+        }
+        tablePaginators.articles.currentStatus = stat;
+        tablePaginators.articles.currentPage = 1;
+        renderPagination("articles");
+    };
+
+    window.filterArticlesTable = function() {
+        tablePaginators.articles.currentPage = 1;
+        renderPagination("articles");
+    };
+
+    // Initialize all paginations on load
+    renderPagination("scans");
+    renderPagination("users");
+    renderPagination("reports");
+    renderPagination("domains");
+    renderPagination("articles");
+
+    // Re-sync tab with URL hash after pagination is initialized
+    if (initialHash && validTabs.includes(initialHash)) {
+        switchAdminTab(initialHash);
+    }
+
+    window.addEventListener("hashchange", function() {
+        const currentHash = window.location.hash.replace('#', '');
+        if (currentHash && validTabs.includes(currentHash)) {
+            switchAdminTab(currentHash);
+        }
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. 🛠️ VISUAL BLOCK EDITOR JAVASCRIPT LOGIC
+    // ─────────────────────────────────────────────────────────────
+
+    let ARTICLES_DATA = {};
+    const dataStoreEl = document.getElementById("articles-json-data");
+    if (dataStoreEl && dataStoreEl.textContent) {
+        try {
+            ARTICLES_DATA = JSON.parse(dataStoreEl.textContent);
+        } catch (e) {
+            console.error("Error parsing articles data", e);
+        }
+    }
+
+    let sectionCounter = 0;
+
+    window.updateImagePreview = function(url, imgId, boxId) {
+        const img = document.getElementById(imgId);
+        const box = document.getElementById(boxId);
+        if (!img || !box) return;
+        const cleanUrl = (url || "").trim();
+        if (cleanUrl && (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://") || cleanUrl.startsWith("/") || cleanUrl.startsWith("data:") || cleanUrl.startsWith("blob:"))) {
+            img.src = cleanUrl;
+            box.classList.remove("hidden");
+        } else {
+            box.classList.add("hidden");
+            img.src = "";
+        }
+    };
+
+    window.addSectionBlock = function(data = {}) {
+        sectionCounter++;
+        const sId = sectionCounter;
+        const container = document.getElementById("sections-container");
+        if (!container) return;
+
+        const block = document.createElement("div");
+        block.className = "section-block bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4 relative transition-all hover:border-slate-300";
+        block.id = `section-block-${sId}`;
+
+        const hasImage = !!(data.image);
+        const hasCallout = !!(data.callout);
+        const hasExamples = !!(data.examples && data.examples.length > 0);
+
+        block.innerHTML = `
+            <!-- Block Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center section-number">
+                        ${container.children.length + 1}
+                    </span>
+                    <span class="text-xs font-extrabold text-slate-800">หัวข้อย่อย</span>
+                </div>
+                <button type="button" onclick="removeSectionBlock(${sId})"
+                    class="text-xs font-bold text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> ลบส่วนนี้
+                </button>
+            </div>
+
+            <!-- Section Title & Text -->
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">ชื่อหัวข้อย่อย</label>
+                    <input type="text" class="sec-title w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="เช่น 1. สังเกตชื่อโดเมน (Domain Name) ให้ละเอียด" value="${data.title ? escapeHtml(data.title) : ''}">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">เนื้อหาคำอธิบาย</label>
+                    <textarea rows="3" class="sec-text w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                        placeholder="อธิบายรายละเอียด คำแนะนำ หรือข้อสังเกต...">${data.text ? escapeHtml(data.text) : ''}</textarea>
+                </div>
+            </div>
+
+            <!-- Optional Feature Toggles -->
+            <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-4 text-xs font-bold text-slate-600">
+                <span class="text-[11px] text-slate-400 font-semibold">องค์ประกอบเสริม:</span>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer hover:text-blue-600">
+                    <input type="checkbox" class="chk-sec-image rounded text-blue-600" onchange="toggleSecImage(${sId})" ${hasImage ? 'checked' : ''}>
+                    <span>🖼️ รูปภาพประกอบ</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer hover:text-blue-600">
+                    <input type="checkbox" class="chk-sec-callout rounded text-blue-600" onchange="toggleSecCallout(${sId})" ${hasCallout ? 'checked' : ''}>
+                    <span>💡 กล่องเตือน/คำแนะนำ</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer hover:text-blue-600">
+                    <input type="checkbox" class="chk-sec-examples rounded text-blue-600" onchange="toggleSecExamples(${sId})" ${hasExamples ? 'checked' : ''}>
+                    <span>🔍 ตัวอย่างเปรียบเทียบ URL</span>
+                </label>
+            </div>
+
+            <!-- Optional: Image Container -->
+            <div id="sec-img-container-${sId}" class="${hasImage ? '' : 'hidden'} p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-regular fa-image text-blue-600"></i> รูปภาพประกอบหัวข้อย่อย
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[11px] font-semibold text-slate-500">ที่อยู่หรือ URL รูปภาพ</label>
+                            <label class="text-[11px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer flex items-center gap-1">
+                                <i class="fa-solid fa-cloud-arrow-up text-[10px]"></i> อัปโหลดรูปจากเครื่อง
+                                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" onchange="uploadSectionImage(this.files[0], ${sId})">
+                            </label>
+                        </div>
+                        <input type="text" class="sec-image-url w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://... หรือ /media/articles/... หรือกดอัปโหลดด้านบน" value="${data.image ? escapeHtml(data.image) : ''}"
+                            oninput="updateImagePreview(this.value, 'sec-preview-img-${sId}', 'sec-preview-box-${sId}')">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 mb-1">คำบรรยายใต้ภาพ (Caption)</label>
+                        <input type="text" class="sec-caption w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="เช่น ตัวอย่างการสังเกตชื่อโดเมน..." value="${data.caption ? escapeHtml(data.caption) : ''}">
+                    </div>
+                </div>
+                <div id="sec-preview-box-${sId}" class="${hasImage ? '' : 'hidden'} rounded-lg overflow-hidden border border-slate-200 max-h-36 w-full max-w-sm bg-slate-100">
+                    <img id="sec-preview-img-${sId}" src="${data.image ? escapeHtml(data.image) : ''}" class="w-full h-full object-cover">
+                </div>
+            </div>
+
+            <!-- Optional: Callout Container -->
+            <div id="sec-callout-container-${sId}" class="${hasCallout ? '' : 'hidden'} p-4 bg-amber-50/70 rounded-xl border border-amber-200/80 space-y-3">
+                <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i> กล่องข้อความเตือน / คำแนะนำพิเศษ (Callout)
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-amber-800 mb-1">ประเภท</label>
+                        <select class="sec-callout-type w-full px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="warning" ${data.callout && data.callout.type === 'warning' ? 'selected' : ''}>⚠️ ข้อควรระวัง (สีส้ม/เหลือง)</option>
+                            <option value="tip" ${data.callout && data.callout.type === 'tip' ? 'selected' : ''}>💡 ข้อแนะนำ/Pro Tip (สีน้ำเงิน)</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-semibold text-amber-800 mb-1">หัวข้อ Callout</label>
+                        <input type="text" class="sec-callout-title w-full px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            placeholder="เช่น ⚠️ ข้อควรระวัง!" value="${data.callout && data.callout.title ? escapeHtml(data.callout.title) : ''}">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-amber-800 mb-1">ข้อความใน Callout</label>
+                    <textarea rows="2" class="sec-callout-text w-full px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
+                        placeholder="ข้อความเน้นย้ำที่สำคัญ...">${data.callout && data.callout.text ? escapeHtml(data.callout.text) : ''}</textarea>
+                </div>
+            </div>
+
+            <!-- Optional: Examples Container -->
+            <div id="sec-examples-container-${sId}" class="${hasExamples ? '' : 'hidden'} p-4 bg-slate-900 rounded-xl text-white space-y-3">
+                <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+                    <div class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-magnifying-glass text-blue-400"></i> ตารางตัวอย่างเปรียบเทียบ URL
+                    </div>
+                    <button type="button" onclick="addExampleRowToSection(${sId})"
+                        class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded text-[11px] font-bold transition flex items-center gap-1 border border-slate-700">
+                        <i class="fa-solid fa-plus"></i> เพิ่มตัวอย่าง
+                    </button>
+                </div>
+                <div id="sec-examples-list-${sId}" class="space-y-2">
+                    <!-- Example rows -->
+                </div>
+            </div>
+        `;
+
+        container.appendChild(block);
+
+        // Populate examples if any
+        if (data.examples && data.examples.length > 0) {
+            data.examples.forEach(ex => {
+                addExampleRowToSection(sId, ex);
+            });
+        }
+        updateSectionNumbers();
+    };
+
+    window.removeSectionBlock = function(sId) {
+        const block = document.getElementById(`section-block-${sId}`);
+        if (block) block.remove();
+        updateSectionNumbers();
+    };
+
+    function updateSectionNumbers() {
+        const container = document.getElementById("sections-container");
+        if (!container) return;
+        const blocks = container.querySelectorAll(".section-block");
+        blocks.forEach((b, idx) => {
+            const numEl = b.querySelector(".section-number");
+            if (numEl) numEl.textContent = idx + 1;
+        });
+    }
+
+    window.toggleSecImage = function(sId) {
+        const el = document.getElementById(`sec-img-container-${sId}`);
+        if (el) el.classList.toggle("hidden");
+    };
+
+    window.toggleSecCallout = function(sId) {
+        const el = document.getElementById(`sec-callout-container-${sId}`);
+        if (el) el.classList.toggle("hidden");
+    };
+
+    window.toggleSecExamples = function(sId) {
+        const el = document.getElementById(`sec-examples-container-${sId}`);
+        if (el) {
+            el.classList.toggle("hidden");
+            const list = document.getElementById(`sec-examples-list-${sId}`);
+            if (!el.classList.contains("hidden") && list && list.children.length === 0) {
+                addExampleRowToSection(sId, { label: "URL ของจริง", url: "https://www.example.com", is_safe: true });
+                addExampleRowToSection(sId, { label: "URL ปลอม", url: "https://www.examp1e.com", is_safe: false });
+            }
+        }
+    };
+
+    window.addExampleRowToSection = function(sId, data = {}) {
+        const list = document.getElementById(`sec-examples-list-${sId}`);
+        if (!list) return;
+        const row = document.createElement("div");
+        row.className = "example-row flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg bg-slate-800/90 border border-slate-700 text-xs";
+        const isSafe = data.is_safe !== undefined ? data.is_safe : true;
+        row.innerHTML = `
+            <div class="flex items-center gap-2 shrink-0">
+                <select class="ex-is-safe px-2 py-1 rounded bg-slate-900 border border-slate-600 text-xs font-bold ${isSafe ? 'text-emerald-400' : 'text-rose-400'}">
+                    <option value="true" ${isSafe ? 'selected' : ''}>🟢 ปลอดภัย</option>
+                    <option value="false" ${!isSafe ? 'selected' : ''}>🔴 อันตราย</option>
+                </select>
+                <input type="text" class="ex-label px-2.5 py-1 bg-slate-900 border border-slate-600 rounded text-xs text-slate-200 font-medium w-28 sm:w-36"
+                    placeholder="ป้ายกำกับ เช่น URL ของจริง" value="${data.label ? escapeHtml(data.label) : ''}">
+            </div>
+            <input type="text" class="ex-url flex-1 px-2.5 py-1 bg-slate-900 border border-slate-600 rounded text-xs font-mono text-slate-200"
+                placeholder="https://..." value="${data.url ? escapeHtml(data.url) : ''}">
+            <button type="button" onclick="this.closest('.example-row').remove()"
+                class="text-slate-400 hover:text-rose-400 p-1 transition self-end sm:self-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
+        list.appendChild(row);
+    };
+
+    window.addTakeawayRow = function(text = '') {
+        const container = document.getElementById("takeaways-container");
+        if (!container) return;
+        const row = document.createElement("div");
+        row.className = "takeaway-row flex items-center gap-2";
+        row.innerHTML = `
+            <span class="text-emerald-400 font-bold text-sm">✓</span>
+            <input type="text" class="takeaway-input flex-1 px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
+                placeholder="เช่น ตรวจสอบชื่อโดเมนหลักทุกครั้งก่อนกรอกข้อมูล..." value="${text ? escapeHtml(text) : ''}">
+            <button type="button" onclick="this.closest('.takeaway-row').remove()"
+                class="text-slate-400 hover:text-rose-400 px-2 py-1 transition">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    };
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Convert all visual elements to clean JSON structure on form submission
+    const formEl = document.getElementById("article-form");
+    if (formEl) {
+        formEl.addEventListener("submit", function(e) {
+            const sections = [];
+            const blockEls = document.querySelectorAll(".section-block");
+            blockEls.forEach(b => {
+                const title = (b.querySelector(".sec-title")?.value || "").trim();
+                const text = (b.querySelector(".sec-text")?.value || "").trim();
+                if (!title && !text) return; // skip completely empty blocks
+
+                const secObj = { title, text };
+
+                // Image
+                const chkImg = b.querySelector(".chk-sec-image");
+                if (chkImg && chkImg.checked) {
+                    const imgUrl = (b.querySelector(".sec-image-url")?.value || "").trim();
+                    const caption = (b.querySelector(".sec-caption")?.value || "").trim();
+                    if (imgUrl) secObj.image = imgUrl;
+                    if (caption) secObj.caption = caption;
+                }
+
+                // Callout
+                const chkCallout = b.querySelector(".chk-sec-callout");
+                if (chkCallout && chkCallout.checked) {
+                    const cType = b.querySelector(".sec-callout-type")?.value || "warning";
+                    const cTitle = (b.querySelector(".sec-callout-title")?.value || "").trim();
+                    const cText = (b.querySelector(".sec-callout-text")?.value || "").trim();
+                    if (cTitle || cText) {
+                        secObj.callout = { type: cType, title: cTitle, text: cText };
+                    }
+                }
+
+                // Examples
+                const chkEx = b.querySelector(".chk-sec-examples");
+                if (chkEx && chkEx.checked) {
+                    const exRows = b.querySelectorAll(".example-row");
+                    const examples = [];
+                    exRows.forEach(r => {
+                        const label = (r.querySelector(".ex-label")?.value || "").trim();
+                        const url = (r.querySelector(".ex-url")?.value || "").trim();
+                        const isSafe = (r.querySelector(".ex-is-safe")?.value === "true");
+                        if (label || url) {
+                            examples.push({ label, url, is_safe: isSafe });
+                        }
+                    });
+                    if (examples.length > 0) secObj.examples = examples;
+                }
+
+                sections.push(secObj);
+            });
+
+            // Key Takeaways
+            const takeaways = [];
+            document.querySelectorAll(".takeaway-input").forEach(inp => {
+                const val = inp.value.trim();
+                if (val) takeaways.push(val);
+            });
+
+            const contentPayload = {
+                sections: sections,
+                key_takeaways: takeaways
+            };
+
+            document.getElementById("f-content").value = JSON.stringify(contentPayload);
+
+            // Clear content_markdown so structured visual sections are used
+            const mdInp = document.getElementById("f-content-markdown");
+            if (mdInp) mdInp.value = "";
+        });
+    }
+
+    // 7. Datepicker & Thai Date Helpers
+    const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+    function getTodayIsoDate() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function formatIsoToThaiDate(isoDateStr) {
+        if (!isoDateStr) return "";
+        const parts = isoDateStr.split("-");
+        if (parts.length === 3) {
+            const year = parseInt(parts[0], 10);
+            const monthIndex = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            if (!isNaN(day) && monthIndex >= 0 && monthIndex < 12) {
+                return `${day} ${thaiMonths[monthIndex]} ${year}`;
+            }
+        }
+        return isoDateStr;
+    }
+
+    function parseThaiDateToIso(thaiDateStr) {
+        if (!thaiDateStr) return "";
+        if (thaiDateStr.includes("-") && thaiDateStr.length === 10) return thaiDateStr;
+        const parts = thaiDateStr.trim().split(/\s+/);
+        if (parts.length === 3) {
+            const day = parts[0].padStart(2, "0");
+            const monthIdx = thaiMonths.indexOf(parts[1]);
+            const year = parts[2];
+            if (monthIdx !== -1) {
+                const m = String(monthIdx + 1).padStart(2, "0");
+                return `${year}-${m}-${day}`;
+            }
+        }
+        return "";
+    }
+
+    window.onDatePickerChange = function(isoVal) {
+        const formatted = formatIsoToThaiDate(isoVal);
+        const hiddenInp = document.getElementById("f-date");
+        const displayEl = document.getElementById("f-date-display");
+        if (hiddenInp) hiddenInp.value = formatted;
+        if (displayEl) {
+            displayEl.textContent = formatted ? `📅 แสดงเป็น: ${formatted}` : "";
+        }
+    };
+
+    // 8. Read Time Helpers
+    window.onReadTimeChange = function() {
+        const num = document.getElementById("f-read-time-num")?.value || "4";
+        const unit = document.getElementById("f-read-time-unit")?.value || "นาที";
+        const hidden = document.getElementById("f-read-time");
+        if (hidden) hidden.value = `${num} ${unit}`;
+    };
+
+    // 9. Image Upload Helpers
+    function uploadImageFile(file, onStart, onSuccess, onError) {
+        if (!file) return;
+        if (onStart) onStart();
+
+        const formData = new FormData();
+        formData.append("image", file);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "";
+
+        fetch("{% url 'article_upload_image' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.url) {
+                onSuccess(data.url, data.filename);
+            } else {
+                alert(data.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+                if (onError) onError();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่ออัปโหลดรูปได้");
+            if (onError) onError();
+        });
+    }
+
+    window.switchCoverMode = function(mode) {
+        const uploadZone = document.getElementById("cover-upload-zone");
+        const urlZone = document.getElementById("cover-url-zone");
+        const btnUpload = document.getElementById("btn-cover-mode-upload");
+        const btnUrl = document.getElementById("btn-cover-mode-url");
+
+        if (mode === "upload") {
+            uploadZone.classList.remove("hidden");
+            urlZone.classList.add("hidden");
+            btnUpload.classList.add("bg-white", "text-blue-600", "shadow-sm");
+            btnUpload.classList.remove("text-slate-500");
+            btnUrl.classList.remove("bg-white", "text-blue-600", "shadow-sm");
+            btnUrl.classList.add("text-slate-500");
+        } else {
+            uploadZone.classList.add("hidden");
+            urlZone.classList.remove("hidden");
+            btnUrl.classList.add("bg-white", "text-blue-600", "shadow-sm");
+            btnUrl.classList.remove("text-slate-500");
+            btnUpload.classList.remove("bg-white", "text-blue-600", "shadow-sm");
+            btnUpload.classList.add("text-slate-500");
+        }
+    };
+
+    window.handleCoverFileUpload = function(file) {
+        if (!file) return;
+        const spinner = document.getElementById("cover-upload-spinner");
+        const fnEl = document.getElementById("cover-preview-filename");
+        const subEl = document.getElementById("cover-preview-sub");
+
+        // แสดงรูปตัวอย่างทันทีให้เห็นว่าเลือกรูปอะไรขึ้นมา
+        try {
+            const tempBlobUrl = URL.createObjectURL(file);
+            updateImagePreview(tempBlobUrl, "cover-preview-img", "cover-preview-box");
+            if (fnEl) fnEl.textContent = file.name;
+            if (subEl) subEl.textContent = `กำลังอัปโหลด... (${(file.size / 1024).toFixed(1)} KB)`;
+        } catch (e) {
+            console.error("Blob preview error", e);
+        }
+
+        uploadImageFile(
+            file,
+            () => { if (spinner) spinner.classList.remove("hidden"); },
+            (serverUrl, filename) => {
+                if (spinner) spinner.classList.add("hidden");
+                setCoverImage(serverUrl, filename || file.name);
+                if (subEl) subEl.textContent = `อัปโหลดสำเร็จ (${(file.size / 1024).toFixed(1)} KB)`;
+            },
+            () => {
+                if (spinner) spinner.classList.add("hidden");
+                clearCoverImage();
+            }
+        );
+    };
+
+    window.setCoverImage = function(url, displayName) {
+        document.getElementById("f-image").value = url;
+        const urlInp = document.getElementById("cover-url-input");
+        if (urlInp) urlInp.value = url;
+        updateImagePreview(url, "cover-preview-img", "cover-preview-box");
+        const fnEl = document.getElementById("cover-preview-filename");
+        const subEl = document.getElementById("cover-preview-sub");
+        if (url) {
+            const name = displayName || url.split("/").pop() || "รูปภาพหน้าปก";
+            if (fnEl) fnEl.textContent = name;
+            if (subEl) subEl.textContent = url.startsWith("http") ? "ลิงก์รูปภาพภายนอก" : "ไฟล์รูปภาพในระบบ PhishWise";
+        }
+    };
+
+    window.clearCoverImage = function() {
+        document.getElementById("f-image").value = "";
+        const urlInp = document.getElementById("cover-url-input");
+        if (urlInp) urlInp.value = "";
+        const fileInp = document.getElementById("cover-file-input");
+        if (fileInp) fileInp.value = "";
+        updateImagePreview("", "cover-preview-img", "cover-preview-box");
+        const fnEl = document.getElementById("cover-preview-filename");
+        const subEl = document.getElementById("cover-preview-sub");
+        if (fnEl) fnEl.textContent = "รูปภาพหน้าปก";
+        if (subEl) subEl.textContent = "ยังไม่ได้เลือกรูปภาพ";
+    };
+
+    window.uploadSectionImage = function(file, sId) {
+        if (!file) return;
+        const block = document.getElementById(`section-block-${sId}`);
+        const urlInp = block ? block.querySelector(".sec-image-url") : null;
+
+        // แสดงรูปตัวอย่างทันที
+        try {
+            const tempBlobUrl = URL.createObjectURL(file);
+            updateImagePreview(tempBlobUrl, `sec-preview-img-${sId}`, `sec-preview-box-${sId}`);
+        } catch (e) {}
+
+        uploadImageFile(
+            file,
+            () => { if (urlInp) urlInp.value = "กำลังอัปโหลดรูปภาพ..."; },
+            (url) => {
+                if (urlInp) {
+                    urlInp.value = url;
+                    updateImagePreview(url, `sec-preview-img-${sId}`, `sec-preview-box-${sId}`);
+                }
+            },
+            () => { if (urlInp) urlInp.value = ""; }
+        );
+    };
+
+    // Modal Triggers
+    window.openArticleModal = function() {
+        const modal = document.getElementById("article-modal");
+        const form = document.getElementById("article-form");
+        const title = document.getElementById("modal-title");
+        form.action = "{% url 'article_create' %}";
+        title.textContent = "เพิ่มบทความใหม่";
+
+        // Reset inputs
+        ["f-title","f-desc","f-summary"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+        document.getElementById("f-author").value = "PhishWise Team";
+        document.getElementById("f-author-role").value = "Cybersecurity Specialist";
+        document.getElementById("f-category").value = "Security";
+        document.getElementById("f-status").value = "published";
+
+        const mdInp = document.getElementById("f-content-markdown");
+        if (mdInp) mdInp.value = "";
+
+        // Read time reset
+        document.getElementById("f-read-time-num").value = "4";
+        document.getElementById("f-read-time-unit").value = "นาที";
+        onReadTimeChange();
+        
+        // Auto-select today's date in calendar picker
+        const todayIso = getTodayIsoDate();
+        const pickerEl = document.getElementById("f-date-picker");
+        if (pickerEl) pickerEl.value = todayIso;
+        onDatePickerChange(todayIso);
+
+        // Reset cover image
+        clearCoverImage();
+        switchCoverMode("upload");
+
+        // Reset Sections (start with 1 clean empty section)
+        document.getElementById("sections-container").innerHTML = "";
+        addSectionBlock({});
+
+        // Reset Takeaways (start with 3 clean empty takeaway rows)
+        document.getElementById("takeaways-container").innerHTML = "";
+        addTakeawayRow("");
+        addTakeawayRow("");
+        addTakeawayRow("");
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    };
+
+    window.openEditModal = function(id) {
+        const art = ARTICLES_DATA[id];
+        if (!art) {
+            console.error("Article not found for id:", id);
+            return;
+        }
+
+        const modal = document.getElementById("article-modal");
+        const form = document.getElementById("article-form");
+        document.getElementById("modal-title").textContent = `แก้ไขบทความ: ${art.title}`;
+        form.action = `/admin/articles/${id}/edit/`;
+
+        document.getElementById("f-title").value = art.title || "";
+        document.getElementById("f-category").value = art.category || "Security";
+        document.getElementById("f-author").value = art.author || "PhishWise Team";
+        document.getElementById("f-author-role").value = art.author_role || "Cybersecurity Specialist";
+        document.getElementById("f-desc").value = art.desc || "";
+        document.getElementById("f-summary").value = art.summary || "";
+        document.getElementById("f-status").value = art.status || "published";
+
+        const mdInp = document.getElementById("f-content-markdown");
+        if (mdInp) mdInp.value = "";
+
+        // Read time populate
+        const rt = (art.read_time || "4 นาที").trim();
+        const rtParts = rt.split(/\s+/);
+        if (rtParts.length >= 2) {
+            document.getElementById("f-read-time-num").value = rtParts[0] || "4";
+            document.getElementById("f-read-time-unit").value = rtParts[1] || "นาที";
+        } else {
+            document.getElementById("f-read-time-num").value = parseInt(rt, 10) || 4;
+            document.getElementById("f-read-time-unit").value = "นาที";
+        }
+        onReadTimeChange();
+
+        // Set date picker from existing article date
+        const rawDate = art.date || "";
+        let isoDate = parseThaiDateToIso(rawDate);
+        if (!isoDate) {
+            isoDate = getTodayIsoDate();
+        }
+        const pickerEl = document.getElementById("f-date-picker");
+        if (pickerEl) pickerEl.value = isoDate;
+        const hiddenInp = document.getElementById("f-date");
+        if (hiddenInp) hiddenInp.value = rawDate || formatIsoToThaiDate(isoDate);
+        const displayEl = document.getElementById("f-date-display");
+        if (displayEl) {
+            displayEl.textContent = hiddenInp.value ? `📅 แสดงเป็น: ${hiddenInp.value}` : "";
+        }
+
+        // Set cover image
+        setCoverImage(art.image || "");
+        if (art.image && art.image.startsWith("http")) {
+            switchCoverMode("url");
+        } else {
+            switchCoverMode("upload");
+        }
+
+        // Populate sections
+        const secContainer = document.getElementById("sections-container");
+        secContainer.innerHTML = "";
+        if (art.sections && art.sections.length > 0) {
+            art.sections.forEach(s => addSectionBlock(s));
+        } else {
+            addSectionBlock({});
+        }
+
+        // Populate takeaways
+        const takeContainer = document.getElementById("takeaways-container");
+        takeContainer.innerHTML = "";
+        if (art.key_takeaways && art.key_takeaways.length > 0) {
+            art.key_takeaways.forEach(t => addTakeawayRow(t));
+        } else {
+            addTakeawayRow("");
+        }
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    };
+
+    window.closeArticleModal = function() {
+        const modal = document.getElementById("article-modal");
+        if (modal) {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+    };
+
+    // Close modal on backdrop click
+    const articleModalEl = document.getElementById("article-modal");
+    if (articleModalEl) {
+        articleModalEl.addEventListener("click", function(e) {
+            if (e.target === this) closeArticleModal();
+        });
+    }
+
+    // ==========================================
+    // ⚠️ Custom Confirmation Modal Logic
+    // ==========================================
+    let confirmCallback = null;
+
+    window.openConfirmModal = function(options) {
+        const modal = document.getElementById('confirm-modal');
+        const box = document.getElementById('confirm-modal-box');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const descEl = document.getElementById('confirm-modal-desc');
+        const iconEl = document.getElementById('confirm-modal-icon');
+        const iconBg = document.getElementById('confirm-modal-icon-bg');
+        const btn = document.getElementById('confirm-modal-btn');
+
+        if (!modal || !box) return;
+
+        titleEl.textContent = options.title || 'ยืนยันการดำเนินการ';
+        descEl.innerHTML = options.desc || '';
+        btn.textContent = options.confirmText || 'ยืนยัน';
+
+        iconBg.className = 'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ' + (options.iconBg || 'bg-amber-50 text-amber-600 border border-amber-200');
+        iconEl.className = 'text-xl ' + (options.icon || 'fa-solid fa-triangle-exclamation');
+        btn.className = 'px-4 py-2 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer ' + (options.confirmClass || 'bg-blue-600 hover:bg-blue-700 text-white');
+
+        confirmCallback = options.onConfirm || null;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            box.classList.remove('scale-95', 'opacity-0');
+            box.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    };
+
+    window.closeConfirmModal = function() {
+        const modal = document.getElementById('confirm-modal');
+        const box = document.getElementById('confirm-modal-box');
+        if (!modal || !box) return;
+
+        box.classList.remove('scale-100', 'opacity-100');
+        box.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            confirmCallback = null;
+        }, 150);
+    };
+
+    const confirmModalBtn = document.getElementById('confirm-modal-btn');
+    if (confirmModalBtn) {
+        confirmModalBtn.addEventListener('click', function() {
+            if (typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        });
+    }
+
+    const confirmModalEl = document.getElementById('confirm-modal');
+    if (confirmModalEl) {
+        confirmModalEl.addEventListener('click', function(e) {
+            if (e.target === this) closeConfirmModal();
+        });
+    }
+
+    window.confirmToggleUser = function(id, email, isActive) {
+        const actionText = isActive ? 'ระงับการใช้งาน' : 'เปิดใช้งาน';
+        const alertDesc = isActive 
+            ? `คุณต้องการระงับบัญชีของ <strong class="text-slate-900 font-semibold">${email}</strong> หรือไม่? ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้ชั่วคราว`
+            : `คุณต้องการเปิดใช้งานบัญชีของ <strong class="text-slate-900 font-semibold">${email}</strong> หรือไม่?`;
+        
+        openConfirmModal({
+            title: `ยืนยัน${actionText}บัญชี`,
+            desc: alertDesc,
+            icon: isActive ? 'fa-solid fa-user-slash' : 'fa-solid fa-user-check',
+            iconBg: isActive ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200',
+            confirmText: actionText,
+            confirmClass: isActive ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white',
+            onConfirm: () => {
+                const form = document.getElementById(`toggle-user-form-${id}`);
+                if (form) form.submit();
+            }
+        });
+    };
+
+    window.confirmReviewReport = function(formId, domain, status) {
+        const isApprove = status === 'approved';
+        const title = isApprove ? 'ยืนยันอนุมัติเบาะแส' : 'ยืนยันปฏิเสธเบาะแส';
+        const desc = isApprove
+            ? `คุณต้องการอนุมัติเบาะแสโดเมน <strong class="text-slate-900 font-mono font-semibold">${domain}</strong> หรือไม่? โดเมนนี้จะถูกจัดเป็นลิงก์อันตรายที่ผ่านการยืนยันแล้ว`
+            : `คุณต้องการปฏิเสธเบาะแสโดเมน <strong class="text-slate-900 font-mono font-semibold">${domain}</strong> หรือไม่?`;
+
+        openConfirmModal({
+            title: title,
+            desc: desc,
+            icon: isApprove ? 'fa-solid fa-shield-check' : 'fa-solid fa-circle-xmark',
+            iconBg: isApprove ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200',
+            confirmText: isApprove ? 'อนุมัติเบาะแส' : 'ปฏิเสธเบาะแส',
+            confirmClass: isApprove ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-rose-600 hover:bg-rose-700 text-white',
+            onConfirm: () => {
+                const form = document.getElementById(formId);
+                if (form) form.submit();
+            }
+        });
+    };
+
+
+});
 </script>
 {% endblock %}

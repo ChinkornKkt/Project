@@ -1,32 +1,184 @@
 {% extends 'base.html' %}
-{% block title %}Report | PhishWise{% endblock %}
+{% block title %}แจ้งเบาะแสเว็บไซต์น่าสงสัย | PhishWise{% endblock %}
 
 {% block content %}
-<main class="max-w-3xl mx-auto px-4 py-10">
-    {% if submitted %}
-        <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md mx-auto text-center animate-fade-in-up">
-            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">✓</div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">ขอบคุณสำหรับการแจ้งเบาะแส!</h2>
-            <p class="text-slate-500 mb-6">ข้อมูลของคุณถูกส่งไปยังผู้ดูแลระบบแล้ว</p>
-            <a href="{% url 'history' %}" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold">ดูสถานะการแจ้ง</a>
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+
+  <!-- Header -->
+  <div class="space-y-2">
+    <div class="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 border border-rose-200 text-rose-700 rounded-full text-xs font-bold shadow-xs">
+      <i class="fa-solid fa-bullhorn text-rose-500"></i> แจ้งเตือนภัยคุกคามไซเบอร์
+    </div>
+    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">รายงานเว็บไซต์น่าสงสัย</h1>
+    <p class="text-sm text-slate-600">ร่วมสร้างชุมชนออนไลน์ที่ปลอดภัย ช่วยแจ้งเตือนเว็บไซต์หลอกลวง ขโมยรหัสผ่าน หรือฟิชชิ่ง เพื่อให้ผู้ดูแลระบบตรวจสอบและอัปเดตระบบป้องกัน</p>
+  </div>
+
+  <!-- Security Guidance Alert Box -->
+  <div class="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 flex items-start gap-3.5 shadow-xs">
+    <div class="text-2xl text-amber-500 shrink-0 mt-0.5">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+    <div class="text-xs space-y-1.5 leading-relaxed">
+      <p class="font-extrabold text-sm text-amber-900 flex items-center gap-1.5">
+        <span>⚠️ คำแนะนำเพื่อความปลอดภัยของผู้แจ้งเบาะแส</span>
+      </p>
+      <p class="text-amber-800">
+        • <strong>ห้ามคลิกเปิดลิงก์ที่ต้องสงสัยโดยเด็ดขาด</strong> และห้ามกรอกรหัสผ่าน ข้อมูลบัตร หรือดาวน์โหลดไฟล์ใด ๆ ลงในเครื่อง<br>
+        • กรุณาคัดลอกเฉพาะข้อความที่อยู่เว็บไซต์ (URL) เช่น <code class="px-1.5 py-0.5 bg-amber-100 rounded font-mono text-[11px]">https://...</code> มาวางในช่องด้านล่าง<br>
+        • ข้อมูลเบาะแสจะถูกเก็บเป็นความลับและตรวจสอบอย่างรอบคอบโดยทีมผู้ดูแลระบบ PhishWise
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Report Form Card -->
+  <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 space-y-6">
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-link text-blue-600"></i> ข้อมูลเว็บไซต์ที่ต้องการแจ้ง
+      </h2>
+      <p class="text-xs text-slate-500 mt-1">กรุณากรอกข้อมูลให้ครบถ้วนเพื่อความรวดเร็วในการตรวจสอบ</p>
+    </div>
+
+    <form method="post" class="space-y-5" id="report-form" onsubmit="return validateReportForm(event)">
+      {% csrf_token %}
+
+      <!-- URL Input -->
+      <div>
+        <label for="id_url" class="block text-xs font-bold text-slate-700 mb-1.5">
+          URL หรือที่อยู่เว็บไซต์ที่น่าสงสัย <span class="text-rose-500">*</span>
+        </label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-globe text-sm"></i>
+          </div>
+          <input name="url" id="id_url" type="text" required
+            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            placeholder="https://example-phishing-site.xyz/login">
         </div>
-    {% else %}
-        <h1 class="text-3xl font-extrabold text-slate-800 flex items-center gap-3 mb-2">แจ้งเบาะแสเว็บอันตราย</h1>
-        <p class="text-slate-500 mb-8">พบเจอเว็บไซต์ต้องสงสัย? แจ้งให้เราทราบเพื่อตรวจสอบ</p>
-        <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-            <form method="post" class="space-y-6">
-                {% csrf_token %}
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">URL ของเว็บไซต์</label>
-                    <input name="url" type="url" required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl" placeholder="https://example-phishing.com">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">รายละเอียดเพิ่มเติม</label>
-                    <textarea name="desc" rows="4" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl" placeholder="เช่น ได้รับ SMS แจ้งว่าบัญชีถูกระงับ..."></textarea>
-                </div>
-                <button type="submit" class="w-full py-4 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200">ยืนยันการแจ้งเบาะแส</button>
-            </form>
+        <p class="text-[11px] text-slate-500 mt-1">ตัวอย่าง: https://fake-bank-login.com หรือ http://103.xxx.xxx/verify</p>
+      </div>
+
+      <!-- Reason Select -->
+      <div>
+        <label for="id_reason" class="block text-xs font-bold text-slate-700 mb-1.5">
+          เหตุผลที่รายงาน / รูปแบบพฤติกรรมน่าสงสัย <span class="text-rose-500">*</span>
+        </label>
+        <div class="relative">
+          <select name="reason" id="id_reason" required
+            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none cursor-pointer">
+            <option value="">-- กรุณาเลือกเหตุผลที่พบ --</option>
+            {% for value, label in reasons %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </div>
         </div>
-    {% endif %}
+      </div>
+
+      <!-- Details Textarea -->
+      <div>
+        <label for="id_details" class="block text-xs font-bold text-slate-700 mb-1.5">
+          รายละเอียดเพิ่มเติม (ถ้ามี)
+        </label>
+        <textarea name="details" id="id_details" rows="3"
+          class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-y"
+          placeholder="เช่น ได้รับลิงก์นี้จาก SMS หลอกว่าเป็นธนาคาร แจ้งให้อัปเดตข้อมูลด่วน..."></textarea>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" id="btn-submit-report"
+        class="w-full py-3.5 px-6 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-extrabold text-sm rounded-xl shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
+        <i class="fa-solid fa-paper-plane"></i>
+        <span>ส่งรายงานให้ผู้ดูแลระบบตรวจสอบ</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- My Reports Section -->
+  <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+      <div>
+        <h2 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> ประวัติการแจ้งเบาะแสของฉัน
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">ติดตามผลการพิจารณาตรวจสอบจากเจ้าหน้าที่</p>
+      </div>
+      <span class="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full">
+        {{ my_reports|length }} รายการล่าสุด
+      </span>
+    </div>
+
+    <div class="divide-y divide-slate-100">
+      {% for report in my_reports %}
+      <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-sm font-bold text-slate-900">{{ report.domain }}</span>
+          </div>
+          <p class="text-xs text-slate-500 flex items-center gap-2">
+            <span>🏷️ {{ report.get_reason_display }}</span>
+            <span>•</span>
+            <span>📅 {{ report.created_at|date:'d/m/Y H:i' }}</span>
+          </p>
+          {% if report.details %}
+            <p class="text-xs text-slate-600 italic bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 mt-1 inline-block">
+              "{{ report.details|truncatechars:80 }}"
+            </p>
+          {% endif %}
+        </div>
+        <div class="shrink-0">
+          {% if report.status == 'approved' %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <i class="fa-solid fa-circle-check text-emerald-500"></i> ตรวจสอบแล้ว (ยืนยันเป็นภัยคุกคาม)
+            </span>
+          {% elif report.status == 'rejected' %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+              <i class="fa-solid fa-circle-xmark text-rose-500"></i> ปฏิเสธรายงาน / ไม่พบความเสี่ยง
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+              <i class="fa-solid fa-hourglass-half text-amber-500"></i> กำลังรอผู้ดูแลระบบตรวจสอบ
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="py-12 text-center text-slate-400 space-y-2">
+        <i class="fa-solid fa-inbox text-4xl text-slate-200"></i>
+        <p class="text-xs font-medium">คุณยังไม่มีประวัติการส่งรายงานเว็บไซต์น่าสงสัย</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
 </main>
+
+<script>
+function validateReportForm(e) {
+  const urlInput = document.getElementById('id_url');
+  const reasonInput = document.getElementById('id_reason');
+  let url = (urlInput ? urlInput.value : '').trim();
+
+  if (!url) {
+    e.preventDefault();
+    if (window.showToast) window.showToast('กรุณากรอกที่อยู่เว็บไซต์ (URL)', 'warning');
+    return false;
+  }
+
+  // Auto-prefix protocol if missing
+  if (!/^https?:\/\//i.test(url)) {
+    url = 'https://' + url;
+    urlInput.value = url;
+  }
+
+  if (!reasonInput || !reasonInput.value) {
+    e.preventDefault();
+    if (window.showToast) window.showToast('กรุณาเลือกเหตุผลในการรายงาน', 'warning');
+    return false;
+  }
+
+  return true;
+}
+</script>
 {% endblock %}

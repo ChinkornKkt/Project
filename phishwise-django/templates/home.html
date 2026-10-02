@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}PhishWise | Home{% endblock %}
+{% block title %}หน้าหลัก | PhishWise{% endblock %}
 
 {% block extra_head %}
 <!-- นำเข้าไลบรารีเปิดกล้องสแกน QR และ FontAwesome -->
@@ -21,16 +21,31 @@
         
         <!-- Title & Subtitle -->
         <h1 class="text-3xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight leading-tight">
-            Analyze suspicious <span class="text-blue-600">URLs & QR Codes</span>
+            ตรวจสอบ <span class="text-blue-600">URL และ QR Code</span>
         </h1>
         <p class="text-base text-slate-500 mb-8 max-w-2xl mx-auto leading-relaxed">
             ตรวจสอบลิงก์และ QR Codes ที่น่าสงสัยด้วยระบบ AI อัจฉริยะ ปกป้องข้อมูลส่วนตัวของคุณจากการถูกโจรกรรมข้อมูล
         </p>
 
+        <!-- Alerts / Messages -->
+        {% if messages %}
+        <div class="mb-6 max-w-2xl mx-auto space-y-2">
+            {% for message in messages %}
+            {% if "ไม่พบ QR Code" not in message.message %}
+            <div class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold border shadow-sm {% if message.tags == 'error' %}bg-rose-50 text-rose-700 border-rose-200{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-blue-50 text-blue-700 border-blue-200{% endif %}">
+                <i class="fa-solid {% if message.tags == 'error' %}fa-triangle-exclamation text-rose-500 text-lg shrink-0{% else %}fa-circle-info text-blue-500 text-lg shrink-0{% endif %}"></i>
+                <span class="flex-1 text-left">{{ message }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Main Form Card -->
         <div class="bg-white p-5 md:p-8 rounded-3xl shadow-xl border border-slate-200/80 max-w-2xl mx-auto text-left">
             <form action="{% url 'scan_view' %}" method="POST" enctype="multipart/form-data" id="main-scan-form" class="space-y-5">
                 {% csrf_token %}
+                <input type="hidden" name="source_type" id="sourceType" value="direct_url">
                 
                 <!-- Tab Switcher -->
                 <div class="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/60">
@@ -40,7 +55,7 @@
                     </button>
                     <button type="button" id="tab-qr" class="py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-qrcode"></i>
-                        <span>QR Code</span>
+                        <span>QR / รูปภาพ</span>
                     </button>
                 </div>
 
@@ -71,21 +86,61 @@
                             <div class="border-t border-slate-200 w-full"></div>
                         </div>
 
-                        <!-- VirusTotal Upload Box -->
-                        <input id="scan-file-upload" type="file" name="file" accept="image/*,.pdf,.doc,.docx,.zip,.exe,.rar" class="hidden">
-                        <label for="scan-file-upload" class="flex items-center justify-center gap-3 w-full px-4 py-3.5 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition">
-                            <span class="p-2 rounded-lg bg-blue-50 text-blue-600">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                            </span>
-                            <span class="text-sm font-medium text-slate-600 truncate" id="file-name-display">
-                                คลิกเพื่ออัปโหลด QR Code ที่น่าสงสัย (VirusTotal Analysis)
+                        <input id="scan-file-upload" type="file" name="file" accept="image/png,image/jpeg,image/webp,image/bmp" class="hidden">
+                        <label for="scan-file-upload" class="flex flex-col items-center justify-center gap-1.5 w-full p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition text-center">
+                            <div class="flex items-center gap-2">
+                                <span class="p-2 rounded-lg bg-blue-50 text-blue-600">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                </span>
+                                <span class="text-sm font-bold text-slate-700 truncate" id="file-name-display">
+                                    คลิกเพื่ออัปโหลดรูปภาพ
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 font-medium">
+                                รองรับทั้ง QR Code และรูปข้อความลิงก์ (ภาษาไทย/อังกฤษ)
                             </span>
                         </label>
+                        <div id="qr-file-reader" class="hidden"></div>
+                        <p id="qr-status" class="hidden text-xs rounded-xl px-3 py-2"></p>
+
+                        <!-- หมายเหตุและคำแนะนำสำคัญในการอัปโหลดภาพ (ข้อความตัวหนา ดำสนิท ขนาดเท่ากัน อ่านง่าย ชัดเจน) -->
+                        <div class="p-4 rounded-2xl bg-amber-50/95 border-2 border-amber-300 text-black shadow-xs text-left">
+                            <div class="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-amber-200">
+                                <span class="w-7 h-7 rounded-lg bg-amber-200 text-amber-950 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <i class="fa-solid fa-lightbulb"></i>
+                                </span>
+                                <div class="flex-1 flex flex-wrap items-center justify-between gap-1">
+                                    <span class="font-black text-black text-xs sm:text-sm tracking-tight">คำแนะนำในการแคปภาพหน้าจอ</span>
+                                    <span class="px-2 py-0.5 text-[10px] font-black bg-amber-400 text-black border border-amber-500/50 rounded-md">ข้อแนะนำสำคัญ</span>
+                                </div>
+                            </div>
+                            
+                            <ul class="space-y-3 text-[12.5px] sm:text-[13px] leading-relaxed text-black font-semibold">
+                                <li class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-crop-simple text-amber-900 mt-1 shrink-0 text-sm"></i>
+                                    <span>
+                                        <strong>1. ครอปเฉพาะบริเวณลิงก์ URL หรือ QR Code และหลีกเลี่ยงการแคปทั้งหน้าจอ</strong> เพื่อให้ระบบ OCR ประมวลผลได้รวดเร็วที่สุด เนื่องจากการแคปทั้งหน้าจอจะมีแถบเครื่องมือและข้อความอื่นมากเกินไป ทำให้ระบบใช้เวลาสแกนนานมาก
+                                    </span>
+                                </li>
+                                <li class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-shield-halved text-amber-900 mt-1 shrink-0 text-sm"></i>
+                                    <span>
+                                        <strong>2. แคปให้เห็นโปรโตคอล http:// หรือ https:// ให้ชัดเจน</strong> เพราะแถบที่อยู่เว็บของเบราว์เซอร์มักซ่อนโปรโตคอลไว้ หากแคปมาไม่ติดระบบจะไม่ทราบว่าเป็น http หรือ https (แนะนำให้ดับเบิลคลิกที่แถบ URL ก่อนแคป หรือแคปจากข้อความแชต/SMS ที่แสดงลิงก์เต็ม)
+                                    </span>
+                                </li>
+                                <li class="flex items-start gap-2.5">
+                                    <i class="fa-solid fa-circle-check text-amber-900 mt-1 shrink-0 text-sm"></i>
+                                    <span>
+                                        <strong>3. รูปภาพต้องคมชัด ตัวหนังสือไม่เบลอ ไม่แตก และไม่เอียง</strong> เพื่อให้อัลกอริทึม OCR สามารถอ่านตัวสะกดของโดเมนและลิงก์ได้อย่างถูกต้องแม่นยำ
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-600/25 transition active:scale-[0.99] flex items-center justify-center gap-2 text-sm">
+                <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-600/25 transition active:scale-[0.99] flex items-center justify-center gap-2 text-sm cursor-pointer">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>ตรวจสอบ</span>
                 </button>
@@ -95,7 +150,8 @@
             <!-- Loading Indicator -->
             <div id="scan-loading" class="hidden pt-4 flex-col items-center justify-center gap-2 text-blue-600 text-center">
                 <i class="fa-solid fa-circle-notch fa-spin text-2xl"></i>
-                <p class="text-xs font-semibold text-slate-500 animate-pulse">กำลังประมวลผลการวิเคราะห์ข้อมูล...</p>
+                <p class="text-xs font-semibold text-slate-600 animate-pulse">กำลังประมวลผลการวิเคราะห์ข้อมูล...</p>
+                <p class="text-[11px] text-slate-400">ระบบกำลังวิเคราะห์ข้อมูล (ภาพถ่ายขนาดใหญ่อาจใช้เวลาประมวลผล OCR สักครู่)</p>
             </div>
         </div>
 
@@ -107,106 +163,412 @@
                 </div>
                 <h3 class="text-slate-800 font-bold mb-1 text-sm">AI Machine Learning</h3>
                 <p class="text-slate-500 text-xs leading-relaxed">
+
                     วิเคราะห์โครงสร้าง URL และเนื้อหาเว็บด้วยอัลกอริทึมวิเคราะห์ความเสี่ยง
+
                 </p>
+
             </div>
 
+
+
             <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+
                 <div class="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center mb-3 text-base">
+
                     <i class="fa-solid fa-shield-virus"></i>
+
                 </div>
+
                 <h3 class="text-slate-800 font-bold mb-1 text-sm">VirusTotal API</h3>
+
                 <p class="text-slate-500 text-xs leading-relaxed">
+
                     ตรวจจับไฟล์มัลแวร์และภัยคุกคามด้วยฐานข้อมูลระดับสากลมากกว่า 70+ เอนจิน
+
                 </p>
+
             </div>
 
+
+
             <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+
                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 text-base">
+
                     <i class="fa-solid fa-gauge-high"></i>
+
                 </div>
+
                 <h3 class="text-slate-800 font-bold mb-1 text-sm">5-Level Assessment</h3>
+
                 <p class="text-slate-500 text-xs leading-relaxed">
+
                     สรุปผลการวิเคราะห์เป็นระดับความเสี่ยงที่เข้าใจง่ายและชัดเจน
+
                 </p>
+
             </div>
+
         </div>
 
+
+
     </div>
+
 </main>
 
+<!-- Modal แจ้งเตือนกลางหน้าจอเมื่อไม่พบ QR Code หรือลิงก์ในรูปภาพ -->
+<div id="ocr-not-found-modal" class="hidden fixed inset-0 z-[100000] items-center justify-center p-4" aria-modal="true" role="dialog">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeOcrNotFoundModal()"></div>
+    <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 p-6 sm:p-7 text-center z-10 animate-in fade-in zoom-in duration-200">
+        <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-lg sm:text-xl font-bold text-slate-900 mb-2">ตรวจไม่พบข้อมูลในรูปภาพ</h3>
+        <p id="ocr-not-found-message" class="text-sm text-slate-600 mb-6 leading-relaxed">
+            ไม่พบ QR Code หรือข้อความ URL ในรูปภาพที่อัปโหลด
+        </p>
+        <button type="button" onclick="closeOcrNotFoundModal()" class="w-full py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/25 transition active:scale-[0.98] cursor-pointer text-sm">
+            ตกลง
+        </button>
+    </div>
+</div>
+
+{% if pending_ocr_urls %}
+<!-- Modal: เลือก URL เมื่อ OCR พบหลายลิงก์ -->
+<div id="url-select-modal" class="hidden fixed inset-0 z-[100000] items-end sm:items-center justify-center p-4" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeUrlModal()"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 z-10">
+        <div class="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600">
+                    <i class="fa-solid fa-link text-lg"></i>
+                </div>
+                <div>
+                    <p class="text-base font-bold text-slate-900">ตรวจพบ {{ pending_ocr_urls|length }} ลิงก์ในรูปภาพ</p>
+                    
+                </div>
+            </div>
+            <button onclick="closeUrlModal()" class="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-xl hover:bg-slate-100">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'select_url' %}" id="modal-select-form" class="px-6 py-5">
+            {% csrf_token %}
+            <label for="modal-url-select" class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">
+                <i class="fa-solid fa-list-check mr-1 text-blue-500"></i> เลือกลิงก์ที่ต้องการตรวจสอบ
+            </label>
+            <select name="selected_url" id="modal-url-select"
+                class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all cursor-pointer"
+                onchange="updateModalPreview(this)">
+                {% for url in pending_ocr_urls %}
+                <option value="{{ url }}" {% if forloop.first %}selected{% endif %}>
+                    {{ url }}
+                </option>
+                {% endfor %}
+            </select>
+            <div id="modal-preview" class="mt-3 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl">
+                <p class="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-1">ลิงก์ที่เลือกตรวจ:</p>
+                <p id="modal-preview-text" class="text-xs font-mono text-blue-900 break-all leading-relaxed font-semibold">{{ pending_ocr_urls.0 }}</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeUrlModal()" class="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all">
+                    ยกเลิก
+                </button>
+                <button type="submit" id="modal-confirm-btn"
+                    class="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    ยืนยันว่าเลือกลิงก์นี้
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <script>
+
     const tabUrl = document.getElementById('tab-url');
+
     const tabQr = document.getElementById('tab-qr');
+
     const panelUrl = document.getElementById('panel-url');
+
     const panelQr = document.getElementById('panel-qr');
+
     const scanBtn = document.getElementById('startScanBtn');
+
     const readerDiv = document.getElementById('reader');
+
     const urlInput = document.getElementById('urlInput');
+
     const scanForm = document.getElementById('main-scan-form');
+
     const scanLoading = document.getElementById('scan-loading');
-    let html5QrcodeScanner = null;
+    const fileInput = document.getElementById('scan-file-upload');
+    const fileDisplay = document.getElementById('file-name-display');
+    const qrStatus = document.getElementById('qr-status');
+    const sourceType = document.getElementById('sourceType');
+    let cameraScanner = null;
+    let cameraRunning = false;
 
-    // Tab Switcher
-    tabUrl.addEventListener('click', () => {
-        panelUrl.classList.remove('hidden');
-        panelQr.classList.add('hidden');
-        
-        tabUrl.className = "py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2";
-        tabQr.className = "py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+    const showQrStatus = (message, isError = false) => {
+        qrStatus.textContent = message;
+        qrStatus.classList.remove(
+            'hidden', 'bg-red-50', 'text-red-700', 'bg-green-50', 'text-green-700'
+        );
+        qrStatus.classList.add(
+            isError ? 'bg-red-50' : 'bg-green-50',
+            isError ? 'text-red-700' : 'text-green-700'
+        );
+    };
 
-        if (html5QrcodeScanner) { 
-            html5QrcodeScanner.clear(); 
-            readerDiv.classList.add('hidden'); 
-            scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>เปิดกล้องสแกน QR Code</span>';
-            html5QrcodeScanner = null;
+    const stopCamera = async () => {
+        if (cameraScanner && cameraRunning) {
+            try {
+                await cameraScanner.stop();
+            } catch (_) {}
         }
-    });
+        if (cameraScanner) {
+            try {
+                await cameraScanner.clear();
+            } catch (_) {}
+        }
+        cameraScanner = null;
+        cameraRunning = false;
+        readerDiv.classList.add('hidden');
+        scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>เปิดกล้องสแกน QR Code</span>';
+    };
 
-    tabQr.addEventListener('click', () => {
-        panelQr.classList.remove('hidden');
-        panelUrl.classList.add('hidden');
-        
-        tabQr.className = "py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2";
-        tabUrl.className = "py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
-    });
-
-    // QR Camera Controller
-    scanBtn.addEventListener('click', () => {
-        readerDiv.classList.remove('hidden');
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
-            readerDiv.classList.add('hidden');
-            html5QrcodeScanner = null;
-            scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>เปิดกล้องสแกน QR Code</span>';
+    const useDecodedQr = async (decodedText) => {
+        const value = decodedText.trim();
+        if (!/^https?:\/\//i.test(value)) {
+            showQrStatus('QR Code นี้ไม่ใช่ลิงก์ HTTP/HTTPS ที่ระบบรองรับ', true);
             return;
         }
+        urlInput.value = value;
+        sourceType.value = 'camera_qr';
+        showQrStatus(`อ่าน QR Code สำเร็จ: ${value}`);
+        await stopCamera();
+        scanLoading.classList.remove('hidden');
+        scanLoading.classList.add('flex');
+        scanForm.requestSubmit();
+    };
 
-        scanBtn.innerHTML = '<i class="fa-solid fa-xmark text-red-500"></i><span>ปิดกล้อง</span>';
-        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 200, height: 200} }, false);
 
-        html5QrcodeScanner.render((decodedText) => {
-            html5QrcodeScanner.clear();
-            readerDiv.classList.add('hidden');
-            html5QrcodeScanner = null;
-            scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>เปิดกล้องสแกน QR Code</span>';
-            urlInput.value = decodedText;
-            tabUrl.click();
-        }, () => {});
+    // Tab Switcher
+
+    tabUrl.addEventListener('click', () => {
+        sourceType.value = 'direct_url';
+        panelUrl.classList.remove('hidden');
+
+        panelQr.classList.add('hidden');
+
+        
+
+        tabUrl.className = "py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2";
+
+        tabQr.className = "py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+
+
+
+        stopCamera();
     });
 
-    // File Name Update
-    document.getElementById('scan-file-upload').addEventListener('change', function(e) {
-        if(e.target.files.length > 0) {
-            document.getElementById('file-name-display').innerHTML = `แนบไฟล์: <strong class="text-blue-600">${e.target.files[0].name}</strong>`;
-            urlInput.value = ''; 
+
+
+    tabQr.addEventListener('click', () => {
+
+        panelQr.classList.remove('hidden');
+
+        panelUrl.classList.add('hidden');
+
+        
+
+        tabQr.className = "py-2.5 rounded-xl text-sm font-bold transition-all bg-white text-blue-600 shadow-sm flex items-center justify-center gap-2";
+
+        tabUrl.className = "py-2.5 rounded-xl text-sm font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+
+    });
+
+
+
+    // QR Camera Controller
+
+    scanBtn.addEventListener('click', async () => {
+        if (cameraRunning) {
+            await stopCamera();
+            return;
+        }
+        if (typeof Html5Qrcode === 'undefined') {
+            showQrStatus('โหลดตัวอ่าน QR Code ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต', true);
+            return;
+        }
+        readerDiv.classList.remove('hidden');
+        scanBtn.innerHTML = '<i class="fa-solid fa-xmark"></i><span>ปิดกล้อง</span>';
+        cameraScanner = new Html5Qrcode('reader');
+        try {
+            await cameraScanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                useDecodedQr,
+                () => {}
+            );
+            cameraRunning = true;
+            showQrStatus('กำลังสแกน กรุณาวาง QR Code ให้อยู่ในกรอบ');
+        } catch (error) {
+            readerDiv.classList.add('hidden');
+            cameraScanner = null;
+            cameraRunning = false;
+            scanBtn.innerHTML = '<i class="fa-solid fa-camera"></i><span>เปิดกล้องสแกน QR Code</span>';
+            showQrStatus(
+                'เปิดกล้องไม่สำเร็จ กรุณาอนุญาตสิทธิ์กล้องและใช้งานผ่าน HTTPS หรือ localhost',
+                true
+            );
         }
     });
 
-    // Loading Handler
-    scanForm.addEventListener('submit', () => {
+    fileInput.addEventListener('change', async () => {
+        if (!fileInput.files.length) return;
+        const file = fileInput.files[0];
+        sourceType.value = 'image_qr';
+        fileDisplay.textContent = `กำลังอ่าน: ${file.name}`;
+        urlInput.value = '';
+        if (file.size > 10 * 1024 * 1024) {
+            showQrStatus('รูปภาพต้องมีขนาดไม่เกิน 10 MB', true);
+            fileInput.value = '';
+            return;
+        }
+        if (typeof Html5Qrcode === 'undefined') {
+            fileDisplay.textContent = `เลือกแล้ว: ${file.name}`;
+            showQrStatus('เลือกรูปภาพแล้ว กดปุ่ม "ตรวจสอบ" เพื่อให้ระบบ AI อ่าน QR Code หรือสแกนข้อความ URL', false);
+            return;
+        }
+        const fileScanner = new Html5Qrcode('qr-file-reader');
+        try {
+            const decodedText = await fileScanner.scanFile(file, true);
+            fileDisplay.textContent = `อ่าน QR Code สำเร็จ: ${file.name}`;
+            await useDecodedQr(decodedText);
+        } catch (_) {
+            fileDisplay.textContent = `เลือกแล้ว: ${file.name}`;
+            showQrStatus(
+                'เลือกรูปภาพเรียบร้อย กดปุ่ม "ตรวจสอบ" เพื่อให้ระบบ AI ตรวจหา QR Code และสแกนข้อความ URL (OCR) จากภาพ',
+                false
+            );
+        } finally {
+            try {
+                await fileScanner.clear();
+            } catch (_) {}
+        }
+    });
+
+    scanForm.addEventListener('submit', (event) => {
+        if (!urlInput.value.trim() && !fileInput.files.length) {
+            event.preventDefault();
+            showQrStatus('กรุณากรอก URL สแกนกล้อง หรือเลือกรูปภาพ QR Code / ข้อความ URL', true);
+            return;
+        }
         scanLoading.classList.remove('hidden');
         scanLoading.classList.add('flex');
     });
+
+    // ----------------------------------------------------
+    // Modal Controllers & Notification Triggers
+    // ----------------------------------------------------
+    window.showOcrNotFoundModal = function(message) {
+        const modal = document.getElementById('ocr-not-found-modal');
+        const msgEl = document.getElementById('ocr-not-found-message');
+        if (msgEl && message) {
+            msgEl.textContent = message;
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    window.closeOcrNotFoundModal = function() {
+        const modal = document.getElementById('ocr-not-found-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        // Switch to QR tab so user can retry uploading
+        if (tabQr) {
+            tabQr.click();
+        }
+    };
+
+    {% if pending_ocr_urls %}
+    window.closeUrlModal = function() {
+        const modal = document.getElementById('url-select-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        fetch("{% url 'select_url' %}", {
+            method: "POST",
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'selected_url=__cancel__'
+        }).catch(() => {});
+    };
+
+    window.updateModalPreview = function(select) {
+        const val = select.value;
+        const preview = document.getElementById('modal-preview');
+        const previewText = document.getElementById('modal-preview-text');
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        if (val) {
+            previewText.textContent = val;
+            preview.classList.remove('hidden');
+            confirmBtn.disabled = false;
+        } else {
+            preview.classList.add('hidden');
+            confirmBtn.disabled = true;
+        }
+    };
+
+    const modalSelectForm = document.getElementById('modal-select-form');
+    if (modalSelectForm) {
+        modalSelectForm.addEventListener('submit', function() {
+            const btn = document.getElementById('modal-confirm-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+            }
+        });
+    }
+
+    // Auto-open URL select modal when pending_ocr_urls exist
+    const urlModal = document.getElementById('url-select-modal');
+    if (urlModal) {
+        urlModal.classList.remove('hidden');
+        urlModal.classList.add('flex');
+    }
+    tabQr.click();
+    {% endif %}
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeOcrNotFoundModal();
+            {% if pending_ocr_urls %}
+            closeUrlModal();
+            {% endif %}
+        }
+    });
+
+    {% if messages %}
+    // ถ้ามีข้อความแจ้งเตือนจากการสแกน ให้เปิดแท็บ QR/รูปภาพ อัตโนมัติ
+    tabQr.click();
+    {% for message in messages %}
+        {% if "ไม่พบ QR Code" in message.message or "ไม่พบ" in message.message and "URL" in message.message %}
+        // แสดง Modal แจ้งเตือนกลางหน้าจอเมื่อไม่พบ QR Code และ URL ในภาพ
+        showOcrNotFoundModal("{{ message.message|escapejs }}");
+        {% endif %}
+    {% endfor %}
+    {% endif %}
 </script>
+
 {% endblock %}

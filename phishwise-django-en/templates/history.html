@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}My Reports | PhishWise{% endblock %}
+
+{% block content %}
+<main class="max-w-5xl mx-auto px-4 py-8 pb-12">
+    <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-slate-800">My Threat Reports</h1>
+        <p class="text-slate-500">Track review status of suspicious websites you reported.</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-100 text-slate-900 text-xs uppercase font-black tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 w-16 text-center">#</th>
+                        <th class="p-4">Reported URL</th>
+                        <th class="p-4">Threat Type</th>
+                        <th class="p-4">Submission Date</th>
+                        <th class="p-4 text-center">Review Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    {% for report in my_reports %}
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-4 text-center text-slate-400 font-bold">{{ report.id }}</td>
+                            <td class="p-4 font-medium text-slate-800 font-mono text-xs md:text-sm truncate max-w-[200px] md:max-w-xs">{{ report.url }}</td>
+                            <td class="p-4"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-200">{{ report.type }}</span></td>
+                            <td class="p-4 text-slate-500">{{ report.date }}</td>
+                            <td class="p-4 text-center">
+                                {% if report.status == 'Verified' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Approved</span>
+                                {% elif report.status == 'Pending' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Pending</span>
+                                {% else %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">Rejected</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-slate-400">No threat reports submitted yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}
