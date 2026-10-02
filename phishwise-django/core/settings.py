@@ -27,9 +27,9 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = 'django-insecure-mxq_l$ll#n9m2^lc_*vawqx1w&m$c)#z(1hjzz+z-tk*04)h4@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
 
 # Application definition

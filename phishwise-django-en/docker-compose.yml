@@ -1,0 +1,18 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: phishwise_app_en
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      - DJANGO_DEBUG=False
+      - ALLOWED_HOSTS=*
+    volumes:
+      # Persist SQLite database and uploaded media files outside the container
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./media:/app/media
+    env_file:
+      - .env

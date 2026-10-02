@@ -1,0 +1,29 @@
+# Git & AI agent tools
+.git/
+.gitignore
+.agents/
+
+# Python cache & virtualenv
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Scratch & temporary files
+scratch/
+tmp/
+output/
+*.log
+
+# Large files & archives
+*.rar
+*.zip
+*.tar.gz
+*.docx
+*.pdf
+
+# Database & local uploads (handled via docker-compose volumes)
+db.sqlite3
+media/
