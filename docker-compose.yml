@@ -1,0 +1,41 @@
+# ==============================================================================
+# PhishWise - Unified Multi-Edition Docker Compose Setup
+# ==============================================================================
+services:
+  # 🇹🇭 Thai Edition (Main Application) -> http://localhost:8000
+  phishwise-th:
+    build:
+      context: ./phishwise-django
+      dockerfile: Dockerfile
+    container_name: phishwise_app_thai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=False
+      - ALLOWED_HOSTS=*
+    volumes:
+      - ./phishwise-django/db.sqlite3:/app/db.sqlite3
+      - ./phishwise-django/media:/app/media
+    env_file:
+      - path: ./phishwise-django/.env
+        required: false
+
+  # 🇬🇧 English Edition (International Application) -> http://localhost:8001
+  phishwise-en:
+    build:
+      context: ./phishwise-django-en
+      dockerfile: Dockerfile
+    container_name: phishwise_app_english
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      - DJANGO_DEBUG=False
+      - ALLOWED_HOSTS=*
+    volumes:
+      - ./phishwise-django-en/db.sqlite3:/app/db.sqlite3
+      - ./phishwise-django-en/media:/app/media
+    env_file:
+      - path: ./phishwise-django-en/.env
+        required: false

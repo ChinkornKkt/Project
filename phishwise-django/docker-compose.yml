@@ -15,4 +15,5 @@ services:
       - ./db.sqlite3:/app/db.sqlite3
       - ./media:/app/media
     env_file:
-      - .env
+      - path: .env
+        required: false
